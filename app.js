@@ -428,10 +428,11 @@ function renderDashboardMetrics() {
     mobileBal.innerText = `₹${currentSummary.closing.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
-  // Calculate total outstanding personal loans across all history
+  // Calculate total outstanding personal loans up to the selected month
   let totalOwed = 0;
   const tempDebts = {};
   state.transactions.forEach(tx => {
+    if (tx.date.substring(0, 7) > state.selectedMonth) return;
     if (!tx.sourcePerson || tx.sourcePerson.trim() === '') return;
     const nameKey = tx.sourcePerson.trim().toLowerCase();
     if (!tempDebts[nameKey]) {
@@ -716,10 +717,15 @@ function renderLentTracker() {
   const listContainer = document.getElementById('lentListContainer');
   if (!trackerPanel || !listContainer) return;
 
-  // Process ALL transactions to build personal loan records
+  const selectedMonth = state.selectedMonth;
+
+  // Filter transactions up to the end of the selected month, and exactly in the selected month
+  const txsUpToMonth = state.transactions.filter(tx => tx.date.substring(0, 7) <= selectedMonth);
+  const txsInMonth = state.transactions.filter(tx => tx.date.substring(0, 7) === selectedMonth);
+
   const debts = {}; // keyed by name lowercase
 
-  state.transactions.forEach(tx => {
+  txsUpToMonth.forEach(tx => {
     if (!tx.sourcePerson || tx.sourcePerson.trim() === '') return;
     const name = tx.sourcePerson.trim();
     const nameKey = name.toLowerCase();
@@ -728,7 +734,8 @@ function renderLentTracker() {
       debts[nameKey] = {
         name: name,
         lent: 0,
-        recovered: 0
+        recovered: 0,
+        hasTxInMonth: false
       };
     }
 
@@ -739,8 +746,22 @@ function renderLentTracker() {
     }
   });
 
-  // Filter out entries that have 0 lent (we only want to track people we actually lent money to)
-  const activeDebts = Object.values(debts).filter(d => d.lent > 0);
+  // Mark if they have active transactions in the current selected month
+  txsInMonth.forEach(tx => {
+    if (!tx.sourcePerson || tx.sourcePerson.trim() === '') return;
+    const nameKey = tx.sourcePerson.trim().toLowerCase();
+    if (debts[nameKey]) {
+      debts[nameKey].hasTxInMonth = true;
+    }
+  });
+
+  // Filter criteria:
+  // 1. We must have lent them money up to this month (lent > 0)
+  // 2. Either they still owe money (lent > recovered), OR they have a transaction in the selected month (hasTxInMonth)
+  const activeDebts = Object.values(debts).filter(d => {
+    const outstanding = d.lent - d.recovered;
+    return d.lent > 0 && (outstanding > 0 || d.hasTxInMonth);
+  });
 
   // Show panel if we are on the overview tab
   const showTracker = state.activeTab === 'overview';
