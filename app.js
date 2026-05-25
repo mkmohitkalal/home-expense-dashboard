@@ -110,10 +110,10 @@ function initStore() {
       state.transactions = [];
     }
   } else {
-    // Inject seed data if empty so the user is wowed immediately by a populated dashboard
-    state.transactions = getSeedData();
-    localStorage.setItem('home_expenses_transactions', JSON.stringify(state.transactions));
-    localStorage.setItem('financeflow_last_updated', '0'); // Fresh seed data has timestamp 0
+    // Start with an empty transaction list for a clean, new dashboard
+    state.transactions = [];
+    localStorage.setItem('home_expenses_transactions', JSON.stringify([]));
+    localStorage.setItem('financeflow_last_updated', '0');
   }
 
   // Set default selected month to current month
