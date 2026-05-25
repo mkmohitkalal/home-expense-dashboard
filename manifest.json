@@ -1,6 +1,6 @@
 {
-  "name": "FinanceFlow Expense Tracker",
-  "short_name": "FinanceFlow",
+  "name": "घर खर्च Expense Tracker",
+  "short_name": "घर खर्च",
   "description": "Premium Home Expense & Carryover Dashboard",
   "start_url": "./index.html",
   "display": "standalone",
