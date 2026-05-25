@@ -613,10 +613,13 @@ function renderTransactionsTable(filterSearch = '', filterType = 'all', filterMo
       'Shopping': '🛍️',
       'Medical & Health': '💊',
       'Rent & Maintenance': '🏠',
+      'Lent/Loan': '🤝',
       'Salary': '💼',
       'Personal Transfer': '🤝',
       'Refund': '🔄',
       'Bonus/Interest': '📈',
+      'Debt Recovery': '🤝',
+      'Contribution': '👥',
       'Others': '🏷️'
     };
     const icon = catIcons[tx.category] || '🏷️';

@@ -20,6 +20,7 @@ const ExpenseCategories = [
   'Medical & Health',
   'Rent & Maintenance',
   'Lent/Loan',
+  'Contribution',
   'Others'
 ];
 
@@ -29,6 +30,7 @@ const IncomeCategories = [
   'Refund',
   'Bonus/Interest',
   'Debt Recovery',
+  'Contribution',
   'Others'
 ];
 
@@ -323,12 +325,13 @@ function extractDescriptionAndCategory(text, type) {
         category = 'Personal Transfer';
         finalDesc = `From ${sourcePerson}`;
       } else {
-        const salaryWords = ['salary', 'employer', 'company', 'bonus', 'dividend', 'interest', 'refund'];
+        const salaryWords = ['salary', 'employer', 'company', 'bonus', 'dividend', 'interest', 'refund', 'contribution', 'contribute'];
         for (const sw of salaryWords) {
           if (lowercase.includes(sw)) {
             if (sw === 'refund') category = 'Refund';
             else if (sw === 'salary') category = 'Salary';
             else if (sw === 'bonus' || sw === 'interest' || sw === 'dividend') category = 'Bonus/Interest';
+            else if (sw === 'contribution' || sw === 'contribute') category = 'Contribution';
             break;
           }
         }
@@ -343,7 +346,8 @@ function extractDescriptionAndCategory(text, type) {
         'Entertainment': ['movie', 'netflix', 'prime', 'spotify', 'theatre', 'game', 'gaming', 'concert', 'show', 'hotstar', 'cinema', 'bookmyshow'],
         'Shopping': ['amazon', 'flipkart', 'myntra', 'clothes', 'shoes', 'gift', 'shopping', 'apparel', 'gadget', 'phone', 'laptop', 'device'],
         'Medical & Health': ['medicine', 'medical', 'hospital', 'doctor', 'clinic', 'pharmacy', 'health', 'gym', 'workout', 'labs', 'test'],
-        'Rent & Maintenance': ['rent', 'maid', 'cook', 'maintenance', 'society', 'lease', 'deposit']
+        'Rent & Maintenance': ['rent', 'maid', 'cook', 'maintenance', 'society', 'lease', 'deposit'],
+        'Contribution': ['contribution', 'contribute', 'share', 'pooled']
       };
       
       for (const [cat, keywords] of Object.entries(categoriesMap)) {
