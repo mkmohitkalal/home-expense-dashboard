@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Expense & Carryover Dashboard</title>
+  <!-- Custom CSS Design Tokens -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js for data visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Visual Error Logger -->
+  <script>
+    window.addEventListener('error', function errorHandler(e) {
+      // Unbind immediately to prevent infinite recursion if the handler itself throws
+      window.removeEventListener('error', errorHandler);
+      
+      console.error("Runtime error caught:", e);
+      
+      const target = document.body || document.documentElement;
+      if (target) {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.top = '0';
+        errorDiv.style.left = '0';
+        errorDiv.style.width = '100%';
+        errorDiv.style.background = '#ef4444';
+        errorDiv.style.color = '#fff';
+        errorDiv.style.padding = '1rem';
+        errorDiv.style.zIndex = '100000';
+        errorDiv.style.fontFamily = 'monospace';
+        errorDiv.style.fontSize = '12px';
+        errorDiv.style.lineHeight = '1.5';
+        errorDiv.style.boxShadow = '0 5px 15px rgba(0,0,0,0.4)';
+        errorDiv.innerHTML = '⚠️ <strong>JavaScript Runtime Error:</strong> ' + e.message + 
+                              '<br><span style="opacity: 0.8;">Location: ' + e.filename + ' [Line ' + e.lineno + ', Col ' + e.colno + ']</span>';
+        target.appendChild(errorDiv);
+      }
+    });
+  </script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="appSidebar">
+      <div class="brand">
+        <div class="brand-icon">₹</div>
+        <span>FinanceFlow</span>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item active" data-tab="overview" id="navOverview">
+          <span class="nav-icon">📊</span> Overview
+        </li>
+        <li class="nav-item" data-tab="transactions" id="navTransactions">
+          <span class="nav-icon">🧾</span> Transactions
+        </li>
+        <li class="nav-item" data-tab="analytics" id="navAnalytics">
+          <span class="nav-icon">📈</span> Analytics
+        </li>
+        <li class="nav-item" data-tab="backup" id="navBackup">
+          <span class="nav-icon">💾</span> Backup & Sync
+        </li>
+      </ul>
+
+      <!-- Theme Switcher -->
+      <div style="padding: 0 0.5rem; margin-top: -0.5rem;">
+        <button id="themeToggleBtn" class="nav-item" style="width: 100%; border: 1px solid var(--glass-border); background: var(--glass-bg); cursor: pointer;" aria-label="Toggle theme">
+          <span class="nav-icon" id="themeToggleIcon">☀️</span> <span id="themeToggleText">Light Theme</span>
+        </button>
+      </div>
+
+      <!-- Monthly Sequence Switcher -->
+      <div class="month-selector-widget">
+        <label>Selected Month</label>
+        <div class="month-picker-container">
+          <button class="month-btn" id="prevMonthBtn" title="Previous Month">◀</button>
+          <select class="month-select" id="monthSelect" aria-label="Select month to view statistics">
+            <!-- Populated via Javascript -->
+          </select>
+          <button class="month-btn" id="nextMonthBtn" title="Next Month">▶</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Content -->
+    <main class="main-content">
+      
+      <!-- Top header area -->
+      <header class="top-header">
+        <div class="welcome-msg">
+          <h1 id="mainHeading">Home Expense Dashboard</h1>
+          <p>Easily manage monthly savings, cash, credit cards, and carryover flows.</p>
+        </div>
+        <div class="current-time" id="timeBox">
+          <span>🕒</span> <span id="currentLocalTime">May 2026</span>
+        </div>
+      </header>
+
+      <!-- Stats Summary cards: Detailed Boxes -->
+      <section class="stats-grid" aria-label="Monthly Financial Summaries">
+        <!-- 1. Carryover / Opening Balance -->
+        <div class="stats-card carryover" id="openingBalanceCard">
+          <div class="stats-header">
+            <span>Opening Balance</span>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <button id="setBaseBalanceBtn" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.85rem;" title="Set Starting Balance">✏️</button>
+              <div class="stats-icon">⏳</div>
+            </div>
+          </div>
+          <div class="stats-value" id="openingBalanceVal">₹0.00</div>
+          <div class="stats-footer">
+            <span>Rollover carry-over from last month</span>
+          </div>
+        </div>
+
+        <!-- 2. Income received this month -->
+        <div class="stats-card income" id="incomeReceivedCard">
+          <div class="stats-header">
+            <span>Incomes Received</span>
+            <div class="stats-icon">📈</div>
+          </div>
+          <div class="stats-value" id="totalIncomeVal">₹0.00</div>
+          <div class="stats-footer">
+            <span>Cash credits, salary & transfers</span>
+          </div>
+        </div>
+
+        <!-- 3. Expenses spent this month -->
+        <div class="stats-card expense" id="expensesSpentCard">
+          <div class="stats-header">
+            <span>Expenses Paid</span>
+            <div class="stats-icon">📉</div>
+          </div>
+          <div class="stats-value" id="totalExpenseVal">₹0.00</div>
+          <div class="stats-footer">
+            <span>Cards & cash utilities spent</span>
+          </div>
+        </div>
+
+        <!-- 3b. Lent Money / Owed to Me summary card -->
+        <div class="stats-card lent" id="totalLentCard">
+          <div class="stats-header">
+            <span>Owed to Me</span>
+            <div class="stats-icon">🤝</div>
+          </div>
+          <div class="stats-value" id="totalLentVal">₹0.00</div>
+          <div class="stats-footer">
+            <span>Outstanding personal loans</span>
+          </div>
+        </div>
+
+        <!-- 4. Closing balance of the month -->
+        <div class="stats-card balance" id="closingBalanceCard">
+          <div class="stats-header">
+            <span>Closing Balance</span>
+            <div class="stats-icon">🏦</div>
+          </div>
+          <div class="stats-value" id="closingBalanceVal">₹0.00</div>
+          <div class="stats-footer">
+            <span>Carried forward to next month</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Overview Layout grid -->
+      <section class="dashboard-grid" id="overviewGrid">
+        
+        <!-- Left Pane: NLP smart transaction parser -->
+        <div class="glass-panel" id="smartInputPanel">
+          <div class="panel-header">
+            <h2><span>🗣️</span> Enter Transaction (Simple Language)</h2>
+          </div>
+          <div class="smart-input-container">
+            <div class="smart-input-wrapper">
+              <span class="smart-icon">✍️</span>
+              <textarea 
+                class="smart-input" 
+                id="nlpInput" 
+                placeholder="Examples: spent 850 on groceries using cash, got 5000 from Amit, spent 1200 on petrol via ICICI card..."
+                aria-label="Enter expense or income details in plain English"
+              ></textarea>
+              <button class="smart-submit-btn" id="addTxBtn" disabled>
+                <span>➕</span> Add
+              </button>
+            </div>
+
+            <!-- Live Parse Preview box -->
+            <div class="live-preview-box" id="livePreviewBox">
+              <div class="preview-title">👁️ Live Parser Preview</div>
+              <div class="preview-badge-container">
+                <span class="preview-badge" id="previewType">💸 Expense</span>
+                <span class="preview-badge amount" id="previewAmount">₹0.00</span>
+                <span class="preview-badge" id="previewDesc">📝 Description</span>
+                <span class="preview-badge payment" id="previewPayment">💳 Cash</span>
+                <span class="preview-badge" id="previewDate">📅 Date</span>
+              </div>
+            </div>
+
+            <!-- Suggestion Query chips -->
+            <div class="smart-suggestions">
+              <span class="suggestion-chip" onclick="applySuggestion('spent 1250 on petrol via HDFC CC yesterday')">
+                ⛽ 1250 petrol via HDFC yesterday
+              </span>
+              <span class="suggestion-chip" onclick="applySuggestion('got 5000 from Amit using cash today')">
+                🤝 got 5000 from Amit
+              </span>
+              <span class="suggestion-chip" onclick="applySuggestion('spent 450 for swiggy food using ICICI CC')">
+                🍔 450 Swiggy via ICICI CC
+              </span>
+              <span class="suggestion-chip" onclick="applySuggestion('paid 1500 for electricity bill via Go Sats')">
+                🔌 1500 electricity via Go Sats
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Pane: Cards and Cash tracker details -->
+        <div class="glass-panel" id="paymentModesPanel">
+          <div class="panel-header">
+            <h2><span>💳</span> Payment Channels Spent</h2>
+          </div>
+          <div class="payment-status-grid" id="paymentModesList">
+            <!-- Rendered dynamically by JavaScript -->
+          </div>
+        </div>
+
+        <!-- Middle/Right Pane: Lent Tracker (Active Loans) Section -->
+        <div class="glass-panel" id="lentTrackerPanel" style="display: none;">
+          <div class="panel-header">
+            <h2><span>🤝</span> Owed to Me (Active Loans)</h2>
+          </div>
+          <div id="lentListContainer" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+            <!-- Rendered dynamically by JavaScript -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Charts & Visual Analytics Section -->
+      <section class="charts-grid-wrapper" id="chartsPanel" style="display: none;">
+        <!-- Category breakdown -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <h2><span>🍰</span> Expense by Category</h2>
+          </div>
+          <div class="chart-container">
+            <canvas id="categoryChartCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Payment channels breakdown -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <h2><span>📊</span> Spend by Card/Cash</h2>
+          </div>
+          <div class="chart-container">
+            <canvas id="paymentChartCanvas"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Transactions list Panel -->
+      <section class="glass-panel transactions-panel" id="transactionsTablePanel">
+        <div class="panel-header">
+          <h2><span>🧾</span> Transactions Ledger</h2>
+          <div class="filters-bar">
+            <!-- Search bar -->
+            <div class="search-wrapper">
+              <span class="search-input-icon">🔍</span>
+              <input type="text" class="search-input" id="searchTx" placeholder="Search item, category, person..." aria-label="Search ledger transactions">
+            </div>
+            <!-- Type filter -->
+            <select class="filter-select" id="filterType" aria-label="Filter transactions by type">
+              <option value="all">All Types</option>
+              <option value="income">Incomes Only</option>
+              <option value="expense">Expenses Only</option>
+            </select>
+            <!-- Payment mode filter -->
+            <select class="filter-select" id="filterMode" aria-label="Filter transactions by payment mode">
+              <option value="all">All Payment Modes</option>
+              <option value="Cash">Cash</option>
+              <option value="ICICI Amazon Pay Credit Card">ICICI Amazon Pay Credit Card</option>
+              <option value="HDFC TATA Neu Credit Card">HDFC TATA Neu Credit Card</option>
+              <option value="Go Sats Prepaid Debit Card">Go Sats Prepaid Debit Card</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Ledger Table container -->
+        <div class="table-wrapper">
+          <table class="tx-table" id="ledgerTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Description / Person</th>
+                <th>Paid Mode</th>
+                <th>Amount (Rs)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="txTableBody">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Backup console section -->
+      <section class="glass-panel backup-panel" id="backupPanel" style="display: none;">
+        <div class="panel-header">
+          <h2><span>💾</span> Backup, Sync & Google Drive Compatibility</h2>
+        </div>
+        
+        <div class="backup-grid">
+          <!-- Exports card -->
+          <div class="backup-option-card">
+            <div class="backup-option-icon">📤</div>
+            <h3>Export Ledger</h3>
+            <p>Save your expense records locally. Exporting to CSV generates a table format that can be easily imported directly into Google Sheets or Microsoft Excel.</p>
+            <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+              <button class="btn btn-primary" id="exportCsvBtn">Export as CSV (Excel/Sheets)</button>
+              <button class="btn btn-secondary" id="exportJsonBtn">Export JSON Backup</button>
+            </div>
+          </div>
+
+          <!-- Imports card -->
+          <div class="backup-option-card">
+            <div class="backup-option-icon">📥</div>
+            <h3>Restore & Import</h3>
+            <p>Load previous records from a backup JSON file. Overwrites your current dashboard configuration.</p>
+            <div class="drag-drop-box" id="importDropzone">
+              <div class="drag-drop-icon">📁</div>
+              <p>Drag & drop backup JSON file here or <strong>click to browse</strong></p>
+              <input type="file" id="importJsonFile" style="display: none;" accept=".json">
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Manual edit details modal popup -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalTitle">Edit Transaction</h3>
+        <button class="modal-close-btn" onclick="closeEditModal()">×</button>
+      </div>
+      <form id="editForm">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="formDate">Date</label>
+              <input type="date" class="form-control" id="formDate" required>
+            </div>
+            <div class="form-group">
+              <label for="formType">Type</label>
+              <select class="form-control" id="formType" required>
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="formAmount">Amount (Rs)</label>
+              <input type="number" class="form-control" id="formAmount" min="0.01" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label for="formPayment">Payment Mode</label>
+              <select class="form-control" id="formPayment" required>
+                <option value="Cash">Cash</option>
+                <option value="ICICI Amazon Pay Credit Card">ICICI Amazon Pay Credit Card</option>
+                <option value="HDFC TATA Neu Credit Card">HDFC TATA Neu Credit Card</option>
+                <option value="Go Sats Prepaid Debit Card">Go Sats Prepaid Debit Card</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="formCategory">Category</label>
+            <select class="form-control" id="formCategory" required>
+              <!-- Filled based on Type in app.js -->
+            </select>
+          </div>
+
+          <div class="form-group" id="formPersonRow" style="display: none;">
+            <label for="formPerson">Received From (Person / Source)</label>
+            <input type="text" class="form-control" id="formPerson" placeholder="Amit, Mom, Boss, Refund, etc.">
+          </div>
+
+          <div class="form-group">
+            <label for="formDesc">Description</label>
+            <input type="text" class="form-control" id="formDesc" placeholder="Groceries shopping, Salary, Swiggy order..." required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast alerts -->
+  <div class="toast" id="toastNotification">
+    <span class="toast-icon">✅</span>
+    <span class="toast-msg">Success Message</span>
+  </div>
+
+  <!-- Javascript Modules Loading -->
+  <script src="parser.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    // Update local date in top header
+    const updateHeaderTime = () => {
+      const now = new Date();
+      const options = { month: 'long', year: 'numeric', day: '2-digit' };
+      document.getElementById('currentLocalTime').innerText = now.toLocaleDateString('en-IN', options);
+    };
+    updateHeaderTime();
+  </script>
+</body>
+</html>
