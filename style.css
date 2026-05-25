@@ -1236,10 +1236,14 @@ body {
     display: none !important;
   }
 
-  .dashboard-grid {
+  .dashboard-grid:not([style*="display: none"]) {
     display: flex !important;
     flex-direction: column !important;
     gap: 1.25rem;
+  }
+
+  .mobile-balance-header {
+    order: 0;
   }
 
   #smartInputPanel {
