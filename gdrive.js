@@ -57,6 +57,10 @@ function gisInit() {
       client_id: clientId,
       scope: SCOPES,
       callback: handleAuthCallback,
+      error_callback: (err) => {
+        console.error("Google Identity Services auth error:", err);
+        showToast("Sign-in failed/canceled. Please try again.", "error");
+      }
     });
     gisInited = true;
     updateSyncUI();
@@ -114,22 +118,39 @@ function handleAuthClick() {
   }
 }
 
-function handleAuthCallback(tokenResponse) {
+async function handleAuthCallback(tokenResponse) {
   if (tokenResponse.error !== undefined) {
     console.error("Auth callback error:", tokenResponse);
     showToast("Google Authentication failed!", "error");
     return;
   }
 
-  const token = {
-    ...tokenResponse,
-    expires_at: new Date().getTime() + (tokenResponse.expires_in * 1000)
-  };
-  localStorage.setItem('gdrive_oauth_token', JSON.stringify(token));
-  gapi.client.setToken(token);
+  try {
+    const token = {
+      ...tokenResponse,
+      expires_at: new Date().getTime() + (tokenResponse.expires_in * 1000)
+    };
+    localStorage.setItem('gdrive_oauth_token', JSON.stringify(token));
 
-  showToast("Authenticated with Google!", "success");
-  startSync();
+    // Ensure GAPI client is fully loaded and initialized before setting token
+    const inited = await ensureGapiInit();
+    if (!inited) {
+      showToast("Google API services failed to load. Please reload the page.", "error");
+      return;
+    }
+
+    if (gapi && gapi.client) {
+      gapi.client.setToken(token);
+    } else {
+      throw new Error("GAPI client not available");
+    }
+
+    showToast("Authenticated with Google!", "success");
+    await startSync();
+  } catch (err) {
+    console.error("Error in auth callback:", err);
+    showToast("Authentication callback error: " + err.message, "error");
+  }
 }
 
 function handleLogout() {
@@ -351,6 +372,11 @@ function toggleAuthGate(visible) {
   const authGate = document.getElementById('authGate');
   if (!authGate) return;
   authGate.style.display = visible ? 'flex' : 'none';
+  if (visible) {
+    document.documentElement.classList.add('gdrive-sync-locked');
+  } else {
+    document.documentElement.classList.remove('gdrive-sync-locked');
+  }
 }
 
 function setSyncingIndicator(isSyncing) {
