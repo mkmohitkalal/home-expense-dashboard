@@ -1,12 +1,12 @@
-const CACHE_NAME = 'financeflow-cache-v4';
+const CACHE_NAME = 'financeflow-cache-v17';
 const ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './parser.js?v=4',
-  './charts.js?v=4',
-  './gdrive.js?v=4',
-  './app.js?v=4',
+  './style.css?v=17',
+  './parser.js?v=17',
+  './charts.js?v=17',
+  './gdrive.js?v=17',
+  './app.js?v=17',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
