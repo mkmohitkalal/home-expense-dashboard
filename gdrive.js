@@ -30,8 +30,8 @@ window.gapiLoad = function() {
         startSync();
       } else {
         if (syncEnabled) {
-          // Sync is active but token is missing/expired: show auth gate
-          toggleAuthGate(true);
+          // Sync is active but token is missing/expired: show warning banner instead of blocking overlay!
+          showSyncWarningBanner(true);
         }
         updateSyncUI();
       }
@@ -146,6 +146,7 @@ async function handleAuthCallback(tokenResponse) {
     }
 
     showToast("Authenticated with Google!", "success");
+    showSyncWarningBanner(false);
     await startSync();
   } catch (err) {
     console.error("Error in auth callback:", err);
@@ -167,6 +168,7 @@ function handleLogout() {
   }
   
   showToast("Logged out & browser cache cleared!", "success");
+  showSyncWarningBanner(false);
   toggleAuthGate(false);
   updateSyncUI();
   
@@ -174,6 +176,28 @@ function handleLogout() {
   setTimeout(() => {
     window.location.reload();
   }, 1000);
+}
+
+function handleTokenExpiration() {
+  localStorage.removeItem('gdrive_oauth_token');
+  
+  if (typeof gapi !== 'undefined' && gapi.client) {
+    try {
+      gapi.client.setToken(null);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  
+  showToast("Google Session expired. Reconnect to resume sync.", "warning");
+  showSyncWarningBanner(true);
+  updateSyncUI();
+}
+
+function showSyncWarningBanner(visible) {
+  const banner = document.getElementById('syncWarningBanner');
+  if (!banner) return;
+  banner.style.display = visible ? 'flex' : 'none';
 }
 
 // 3. Two-Way Sync Conflict Resolution
@@ -254,7 +278,7 @@ async function startSync() {
   } catch (err) {
     console.error("Synchronization failed", err);
     if (err.status === 401) {
-      handleLogout();
+      handleTokenExpiration();
     } else {
       showToast("Cloud sync failed. Check internet connection.", "error");
     }
@@ -362,7 +386,7 @@ async function updateCloudFile() {
   } catch (err) {
     console.error("Failed to update cloud file:", err);
     if (err.status === 401) {
-      handleLogout();
+      handleTokenExpiration();
     }
   }
 }
@@ -500,6 +524,12 @@ document.addEventListener('DOMContentLoaded', () => {
         handleLogout();
       }
     });
+  }
+  
+  // Reconnect warning banner button
+  const reconnectBtn = document.getElementById('bannerReconnectBtn');
+  if (reconnectBtn) {
+    reconnectBtn.addEventListener('click', handleAuthClick);
   }
   
   // Initial UI Setup
