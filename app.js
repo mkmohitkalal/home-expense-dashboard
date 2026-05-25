@@ -422,6 +422,12 @@ function renderDashboardMetrics() {
   document.getElementById('totalExpenseVal').innerText = `₹${currentSummary.expense.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   document.getElementById('closingBalanceVal').innerText = `₹${currentSummary.closing.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  // Update mobile balance header value
+  const mobileBal = document.getElementById('mobileAvailableBalanceVal');
+  if (mobileBal) {
+    mobileBal.innerText = `₹${currentSummary.closing.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
   // Calculate total outstanding personal loans across all history
   let totalOwed = 0;
   const tempDebts = {};

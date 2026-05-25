@@ -1117,6 +1117,11 @@ body {
   display: none;
 }
 
+/* Mobile Balance Header Widget (Hidden by default on Desktop) */
+.mobile-balance-header {
+  display: none;
+}
+
 @media (max-width: 768px) {
   body {
     flex-direction: column;
@@ -1192,27 +1197,61 @@ body {
     display: none !important;
   }
 
-  /* Stats grid scrollable cards */
-  .stats-grid {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    gap: 0.85rem;
-    padding-bottom: 0.75rem;
-    -webkit-overflow-scrolling: touch;
-    grid-template-columns: none !important;
+  /* Mobile Balance Header Widget */
+  .mobile-balance-header {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(16, 185, 129, 0.05));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.25rem;
+    text-align: center;
+    box-shadow: var(--shadow-main);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
   }
-  
-  .stats-card {
-    min-width: 250px;
-    flex-shrink: 0;
-    scroll-snap-align: start;
-    margin-bottom: 0;
+
+  .mobile-balance-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+  }
+
+  .mobile-balance-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 0 25px rgba(99, 102, 241, 0.35);
+  }
+
+  /* Hide stats grid on Overview screen on mobile */
+  .stats-grid {
+    display: none !important;
   }
 
   .dashboard-grid {
-    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 1.25rem;
+  }
+
+  #smartInputPanel {
+    order: 1;
+  }
+
+  #paymentModesPanel {
+    order: 2;
+  }
+
+  #lentTrackerPanel {
+    order: 3;
   }
 
   .smart-suggestions {
