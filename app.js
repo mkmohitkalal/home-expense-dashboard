@@ -372,7 +372,9 @@ function computeMonthlySummaries() {
     const monthClosing = closingBalances[PaymentModes.CASH] + closingBalances[PaymentModes.GOSATS] - closingBalances[PaymentModes.ICICI] - closingBalances[PaymentModes.HDFC];
 
     const income = monthTxs.filter(tx => tx.type === 'income' && tx.category !== 'Debt Recovery').reduce((sum, tx) => sum + tx.amount, 0);
-    const expense = monthTxs.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
+    const rawExpense = monthTxs.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
+    const recoveries = monthTxs.filter(tx => tx.type === 'income' && tx.category === 'Debt Recovery').reduce((sum, tx) => sum + tx.amount, 0);
+    const expense = Math.max(0, rawExpense - recoveries);
 
     summaries[m] = {
       opening: monthOpening,
