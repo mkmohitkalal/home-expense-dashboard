@@ -7,6 +7,8 @@ let gapiInited = false;
 let gisInited = false;
 let gdriveFileId = null;
 
+const DEFAULT_CLIENT_ID = '696812902574-9iumi00k2aaqik27s8ket0arqq5fibcu.apps.googleusercontent.com';
+
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
@@ -44,7 +46,7 @@ window.gisLoad = function() {
 };
 
 function gisInit() {
-  const clientId = localStorage.getItem('gdrive_client_id');
+  const clientId = localStorage.getItem('gdrive_client_id') || DEFAULT_CLIENT_ID;
   if (!clientId) {
     updateSyncUI();
     return;
@@ -66,7 +68,7 @@ function gisInit() {
 
 // 2. Authentication Handlers
 function handleAuthClick() {
-  const clientId = localStorage.getItem('gdrive_client_id');
+  const clientId = localStorage.getItem('gdrive_client_id') || DEFAULT_CLIENT_ID;
   if (!clientId) {
     showToast("Please enter a Google Client ID in the Backup & Sync page first!", "error");
     switchTab('backup');
@@ -342,7 +344,7 @@ function updateSyncUI() {
   if (!sidebarContainer || !widget) return;
 
   const isConnected = localStorage.getItem('gdrive_sync_enabled') === 'true';
-  const clientId = localStorage.getItem('gdrive_client_id');
+  const clientId = localStorage.getItem('gdrive_client_id') || DEFAULT_CLIENT_ID;
 
   if (isConnected) {
     widget.style.display = 'block';
