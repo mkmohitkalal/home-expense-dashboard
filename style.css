@@ -1329,4 +1329,107 @@ body {
   background: linear-gradient(90deg, var(--accent-income), #34d399);
 }
 
+/* Google Drive Sync UI & Lock Screen Styles */
+.gdrive-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.gdrive-status-badge.connected {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-income);
+}
+
+.gdrive-status-badge.disconnected {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+}
+
+.auth-gate-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(5, 8, 16, 0.9);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  transition: var(--transition-smooth);
+}
+
+.gdrive-sync-locked .auth-gate-overlay {
+  display: flex !important;
+}
+
+.auth-gate-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 100px rgba(99, 102, 241, 0.1);
+  border-radius: var(--radius-lg);
+  width: 420px;
+  max-width: 90vw;
+  padding: 2.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.auth-gate-icon {
+  font-size: 3.5rem;
+  background: rgba(99, 102, 241, 0.1);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.auth-gate-card h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.auth-gate-card p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.gate-login-btn {
+  width: 100%;
+  font-size: 1rem;
+  padding: 0.8rem;
+  background: #4285F4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.3);
+  transition: var(--transition-smooth);
+}
+
+.gate-login-btn:hover {
+  transform: translateY(-2px);
+  background: #357ae8;
+  box-shadow: 0 8px 25px rgba(66, 133, 244, 0.45);
+}
+
+
 

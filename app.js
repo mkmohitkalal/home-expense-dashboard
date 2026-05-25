@@ -10,6 +10,25 @@ let state = {
   editingTxId: null // ID of transaction currently being edited
 };
 
+// State persistence and cloud synchronization wrapper
+function saveAppState() {
+  localStorage.setItem('home_expenses_transactions', JSON.stringify(state.transactions));
+  localStorage.setItem('financeflow_last_updated', Date.now().toString());
+  
+  if (localStorage.getItem('gdrive_sync_enabled') === 'true' && typeof updateCloudFile === 'function') {
+    updateCloudFile();
+  }
+}
+
+function saveBaseBalance(value) {
+  localStorage.setItem('base_opening_balance', value.toString());
+  localStorage.setItem('financeflow_last_updated', Date.now().toString());
+  
+  if (localStorage.getItem('gdrive_sync_enabled') === 'true' && typeof updateCloudFile === 'function') {
+    updateCloudFile();
+  }
+}
+
 // Helper: Format Date as YYYY-MM
 function getYearMonthString(date) {
   const y = date.getFullYear();
@@ -73,7 +92,7 @@ function repairExistingTransactions() {
   });
 
   if (modified) {
-    localStorage.setItem('home_expenses_transactions', JSON.stringify(state.transactions));
+    saveAppState();
   }
 }
 
@@ -94,6 +113,7 @@ function initStore() {
     // Inject seed data if empty so the user is wowed immediately by a populated dashboard
     state.transactions = getSeedData();
     localStorage.setItem('home_expenses_transactions', JSON.stringify(state.transactions));
+    localStorage.setItem('financeflow_last_updated', '0'); // Fresh seed data has timestamp 0
   }
 
   // Set default selected month to current month
@@ -650,7 +670,7 @@ function saveTransaction(txData) {
   }
 
   // Persist to local storage
-  localStorage.setItem('home_expenses_transactions', JSON.stringify(state.transactions));
+  saveAppState();
   
   // Recalculate and re-render
   refreshDashboard();
@@ -666,7 +686,7 @@ function saveTransactionsMultiple(txDataArray) {
     state.transactions.push(newTx);
   });
   
-  localStorage.setItem('home_expenses_transactions', JSON.stringify(state.transactions));
+  saveAppState();
   showToast(`Added ${txDataArray.length} transactions successfully!`, "success");
   refreshDashboard();
 }
@@ -675,7 +695,7 @@ function saveTransactionsMultiple(txDataArray) {
 function deleteTransaction(id) {
   if (confirm("Are you sure you want to delete this transaction?")) {
     state.transactions = state.transactions.filter(t => t.id !== id);
-    localStorage.setItem('home_expenses_transactions', JSON.stringify(state.transactions));
+    saveAppState();
     showToast("Transaction deleted successfully!", "success");
     refreshDashboard();
   }
@@ -1182,7 +1202,7 @@ function handleImportFile(file) {
         if (isValidFormat) {
           if (confirm(`Do you want to import ${importedData.length} transactions? This will overwrite your current dataset.`)) {
             state.transactions = importedData;
-            localStorage.setItem('home_expenses_transactions', JSON.stringify(state.transactions));
+            saveAppState();
             showToast("Backup imported successfully!", "success");
             refreshDashboard();
           }
@@ -1318,7 +1338,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (newVal !== null) {
         const parsed = parseFloat(newVal);
         if (!isNaN(parsed) && parsed >= 0) {
-          localStorage.setItem('base_opening_balance', parsed.toString());
+          saveBaseBalance(parsed);
           showToast(`Starting balance updated to ₹${parsed.toLocaleString('en-IN')}`, "success");
           refreshDashboard();
         } else {
