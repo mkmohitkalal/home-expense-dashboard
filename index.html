@@ -8,9 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <!-- Chart.js for data visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Google API Client and Google Identity Services SDK -->
-  <script src="https://accounts.google.com/gsi/client" onload="gisLoad()" async defer></script>
-  <script src="https://apis.google.com/js/api.js" onload="gapiLoad()" async defer></script>
+
   <!-- Anti-flicker Lock Screen Trigger -->
   <script>
     if (localStorage.getItem('gdrive_sync_enabled') === 'true') {
@@ -491,6 +489,9 @@
   <script src="charts.js"></script>
   <script src="gdrive.js"></script>
   <script src="app.js"></script>
+  <!-- Google API Client and Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" onload="gisLoad()" async defer></script>
+  <script src="https://apis.google.com/js/api.js" onload="gapiLoad()" async defer></script>
 
   <script>
     // Update local date in top header
