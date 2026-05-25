@@ -66,6 +66,32 @@ function gisInit() {
   }
 }
 
+function ensureGapiInit() {
+  if (gapiInited) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    if (typeof gapi === 'undefined' || typeof gapi.load === 'undefined') {
+      console.error("GAPI script not loaded yet");
+      resolve(false);
+      return;
+    }
+    
+    gapi.load('client', async () => {
+      try {
+        await gapi.client.init({
+          discoveryDocs: [DISCOVERY_DOC],
+        });
+        gapiInited = true;
+        console.log("Google API Client loaded dynamically");
+        resolve(true);
+      } catch (err) {
+        console.error("GAPI dynamic initialization error", err);
+        resolve(false);
+      }
+    });
+  });
+}
+
 // 2. Authentication Handlers
 function handleAuthClick() {
   const clientId = localStorage.getItem('gdrive_client_id') || DEFAULT_CLIENT_ID;
@@ -131,7 +157,11 @@ function handleLogout() {
 
 // 3. Two-Way Sync Conflict Resolution
 async function startSync() {
-  if (!gapiInited) return;
+  const inited = await ensureGapiInit();
+  if (!inited) {
+    showToast("Google API services failed to load. Please reload the page.", "error");
+    return;
+  }
 
   try {
     // Show spinner or pulse status badge
