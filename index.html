@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home Expense & Carryover Dashboard</title>
   <!-- Custom CSS Design Tokens -->
+  <meta name="theme-color" content="#050810">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FinanceFlow">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <!-- Chart.js for data visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -363,6 +369,9 @@
             <h3>Google Drive Cloud Sync</h3>
             <p>Access and sync your private ledger across all your devices using your private Google Drive storage.</p>
             
+            <!-- Mobile Sync Status Widget Placeholder -->
+            <div id="gdriveStatusContainerMobile" style="width: 100%; margin-top: 0.5rem; margin-bottom: 0.5rem;"></div>
+            
             <div class="form-group" style="margin-top: 1rem; margin-bottom: 1rem; width: 100%; text-align: left;">
               <label for="gdriveClientId" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 600;">Google Cloud OAuth Client ID</label>
               <input type="password" id="gdriveClientId" class="form-control" placeholder="Paste your Google Client ID here..." style="width: 100%; box-sizing: border-box; background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.6rem; color: var(--text-primary);">
@@ -393,6 +402,26 @@
     </main>
 
   </div>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mobile-nav-bar" aria-label="Mobile Navigation">
+    <div class="mobile-nav-item nav-item active" data-tab="overview">
+      <span class="mobile-nav-icon">📊</span>
+      <span class="mobile-nav-label">Overview</span>
+    </div>
+    <div class="mobile-nav-item nav-item" data-tab="transactions">
+      <span class="mobile-nav-icon">🧾</span>
+      <span class="mobile-nav-label">Ledger</span>
+    </div>
+    <div class="mobile-nav-item nav-item" data-tab="analytics">
+      <span class="mobile-nav-icon">📈</span>
+      <span class="mobile-nav-label">Analytics</span>
+    </div>
+    <div class="mobile-nav-item nav-item" data-tab="backup">
+      <span class="mobile-nav-icon">💾</span>
+      <span class="mobile-nav-label">Sync</span>
+    </div>
+  </nav>
 
   <!-- Manual edit details modal popup -->
   <div class="modal-overlay" id="editModal">
@@ -501,6 +530,15 @@
       document.getElementById('currentLocalTime').innerText = now.toLocaleDateString('en-IN', options);
     };
     updateHeaderTime();
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker registered successfully!', reg))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
   </script>
 </body>
 </html>
