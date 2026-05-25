@@ -243,9 +243,11 @@ async function startSync() {
         }
 
         // Overwrite rules:
-        // Cloud wins if it's strictly newer, or if the local dataset has <= 15 items (assumed fresh seed data)
+        // Cloud wins if it's strictly newer.
+        // isFreshSeed: only true if local has never been saved (timestamp=0) AND all IDs are seed IDs (start with 'tx-seed')
         const isLocalNewer = localLastUpdated > cloudLastUpdated;
-        const isFreshSeed = localTxs.length <= 15 && localLastUpdated === 0;
+        const allAreSeedIds = localTxs.length === 0 || localTxs.every(tx => tx.id && tx.id.startsWith('tx-seed'));
+        const isFreshSeed = localLastUpdated === 0 && allAreSeedIds;
 
         if (!isLocalNewer && (cloudLastUpdated > localLastUpdated || isFreshSeed)) {
           console.log("Cloud backup is newer. Overwriting local data...");

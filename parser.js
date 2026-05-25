@@ -95,8 +95,15 @@ function extractType(lowercaseText) {
   const incomeWords = [
     'received', 'got', 'credited', 'salary', 'income', 'refund', 'bonus', 
     'earned', 'got from', 'received from', 'added', 'pocket money', 'freelance',
-    'returned', 'paid back', 'got back', 'repaid', 'recovered'
+    'paid back', 'got back', 'repaid', 'recovered'
   ];
+  
+  // 'returned' only means income if it's a repayment context (returned money/amount back from someone)
+  if (lowercaseText.includes('returned') && 
+      (lowercaseText.includes('returned from') || lowercaseText.includes('returned back') || 
+       lowercaseText.match(/\b[a-z]+\s+returned\b/))) {
+    return 'income';
+  }
   
   for (const word of incomeWords) {
     if (lowercaseText.includes(word)) {
@@ -257,7 +264,7 @@ function extractDescriptionAndCategory(text, type) {
   
   // Remove dates
   cleaned = cleaned.replace(/\b(?:today|yesterday|day before yesterday)\b/gi, '');
-  cleaned = cleaned.replace(/\bd{4}-\d{2}-\d{2}\b/g, '');
+  cleaned = cleaned.replace(/\b\d{4}-\d{2}-\d{2}\b/g, '');
   cleaned = cleaned.replace(/\b\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/gi, '');
   cleaned = cleaned.replace(/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}\b/gi, '');
   cleaned = cleaned.replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g, '');

@@ -10,6 +10,53 @@ let state = {
   editingTxId: null // ID of transaction currently being edited
 };
 
+// ===== Built-in Payment Channels =====
+// type: 'asset'     => balance goes UP with income, DOWN with expense (Cash, Prepaid)
+// type: 'liability' => outstanding OWES go UP with expense, DOWN with income/payment (Credit Cards)
+const BUILTIN_CHANNELS = [
+  { key: 'CASH',   name: 'Cash',                         type: 'asset',     emoji: '💵', color: '#10b981', isBuiltin: true, label: 'Physical Balance' },
+  { key: 'ICICI',  name: 'ICICI Amazon Pay Credit Card', type: 'liability', emoji: '💳', color: '#ef4444', isBuiltin: true, label: 'Credit Card Dues' },
+  { key: 'HDFC',   name: 'HDFC TATA Neu Credit Card',   type: 'liability', emoji: '💳', color: '#f59e0b', isBuiltin: true, label: 'Credit Card Dues' },
+  { key: 'GOSATS', name: 'Go Sats Prepaid Debit Card',  type: 'asset',     emoji: '⚡', color: '#6366f1', isBuiltin: true, label: 'Prepaid Balance' },
+];
+
+// ===== Custom Channel Helpers =====
+function getCustomChannels() {
+  try {
+    return JSON.parse(localStorage.getItem('custom_payment_channels') || '[]');
+  } catch(e) { return []; }
+}
+
+function saveCustomChannels(channels) {
+  localStorage.setItem('custom_payment_channels', JSON.stringify(channels));
+}
+
+function getAllChannels() {
+  return [...BUILTIN_CHANNELS, ...getCustomChannels()];
+}
+
+// Keep all payment-mode <select> elements in sync with current channel list
+function populatePaymentModeSelects() {
+  const all = getAllChannels();
+  const options = all.map(ch => `<option value="${ch.name}">${ch.name}</option>`).join('');
+
+  // Form modal payment select
+  const formPayment = document.getElementById('formPayment');
+  if (formPayment) {
+    const cur = formPayment.value;
+    formPayment.innerHTML = options;
+    if ([...formPayment.options].some(o => o.value === cur)) formPayment.value = cur;
+  }
+
+  // Filter dropdown in transactions panel
+  const filterMode = document.getElementById('filterMode');
+  if (filterMode) {
+    const curFilter = filterMode.value;
+    filterMode.innerHTML = `<option value="all">All Payment Modes</option>` + options;
+    if ([...filterMode.options].some(o => o.value === curFilter)) filterMode.value = curFilter;
+  }
+}
+
 // State persistence and cloud synchronization wrapper
 function saveAppState() {
   localStorage.setItem('home_expenses_transactions', JSON.stringify(state.transactions));
@@ -282,31 +329,36 @@ function getMonthRange(minMonth, maxMonth) {
 
 // Compute Carryover balances and month stats recursively/chronologically
 function computeMonthlySummaries() {
+  const allChannels = getAllChannels();
+  const baseOpeningBalance = parseFloat(localStorage.getItem('base_opening_balance') || '0');
+
+  // Build initial zero-balance maps dynamically
+  function makeBalanceMap() {
+    const m = {};
+    allChannels.forEach(ch => { m[ch.name] = 0; });
+    return m;
+  }
+  function makeFlowMap() {
+    const m = {};
+    allChannels.forEach(ch => { m[ch.name] = { income: 0, expense: 0 }; });
+    return m;
+  }
+
   if (state.transactions.length === 0) {
+    const initialBalances = makeBalanceMap();
+    const cashCh = allChannels.find(c => c.key === 'CASH');
+    if (cashCh) initialBalances[cashCh.name] = baseOpeningBalance;
+
     const summaries = {};
-    const baseOpeningBalance = parseFloat(localStorage.getItem('base_opening_balance') || '0');
-    
-    const initialChannels = {
-      [PaymentModes.CASH]: baseOpeningBalance,
-      [PaymentModes.ICICI]: 0,
-      [PaymentModes.HDFC]: 0,
-      [PaymentModes.GOSATS]: 0
-    };
-    
     summaries[state.selectedMonth] = {
       opening: baseOpeningBalance,
       income: 0,
       expense: 0,
       closing: baseOpeningBalance,
       channels: {
-        starting: initialChannels,
-        monthly: {
-          [PaymentModes.CASH]: { income: 0, expense: 0 },
-          [PaymentModes.ICICI]: { income: 0, expense: 0 },
-          [PaymentModes.HDFC]: { income: 0, expense: 0 },
-          [PaymentModes.GOSATS]: { income: 0, expense: 0 }
-        },
-        ending: initialChannels
+        starting: { ...initialBalances },
+        monthly: makeFlowMap(),
+        ending: { ...initialBalances }
       }
     };
     return summaries;
@@ -315,7 +367,6 @@ function computeMonthlySummaries() {
   // Find min and max months in database
   let minMonth = state.selectedMonth;
   let maxMonth = state.selectedMonth;
-
   state.transactions.forEach(tx => {
     const m = tx.date.substring(0, 7);
     if (m < minMonth) minMonth = m;
@@ -325,90 +376,66 @@ function computeMonthlySummaries() {
   const allMonths = getMonthRange(minMonth, maxMonth);
   const summaries = {};
 
-  // Starting base balance from localStorage goes to Cash as the baseline asset
-  const baseOpeningBalance = parseFloat(localStorage.getItem('base_opening_balance') || '0');
-  let runningBalances = {
-    [PaymentModes.CASH]: baseOpeningBalance,
-    [PaymentModes.ICICI]: 0,
-    [PaymentModes.HDFC]: 0,
-    [PaymentModes.GOSATS]: 0
-  };
+  // Seed running balances — Cash starts with base balance
+  let runningBalances = makeBalanceMap();
+  const cashCh = allChannels.find(c => c.key === 'CASH');
+  if (cashCh) runningBalances[cashCh.name] = baseOpeningBalance;
 
   for (const m of allMonths) {
     const monthTxs = state.transactions.filter(tx => tx.date.substring(0, 7) === m);
-    
-    // Group monthly flows by payment channel
-    const monthlyFlows = {
-      [PaymentModes.CASH]: { income: 0, expense: 0 },
-      [PaymentModes.ICICI]: { income: 0, expense: 0 },
-      [PaymentModes.HDFC]: { income: 0, expense: 0 },
-      [PaymentModes.GOSATS]: { income: 0, expense: 0 }
-    };
-    
+
+    // Group monthly flows by channel name
+    const monthlyFlows = makeFlowMap();
     monthTxs.forEach(tx => {
       const mode = tx.paymentMode || PaymentModes.CASH;
       if (mode in monthlyFlows) {
-        if (tx.type === 'income') {
-          monthlyFlows[mode].income += tx.amount;
-        } else {
-          monthlyFlows[mode].expense += tx.amount;
-        }
+        if (tx.type === 'income') monthlyFlows[mode].income += tx.amount;
+        else                      monthlyFlows[mode].expense += tx.amount;
       }
     });
 
-    // Capture starting balances for this month
     const openingBalances = { ...runningBalances };
 
-    // Update running balances
-    // Assets (Cash, Go Sats): Balance increases with Income, decreases with Expense
-    runningBalances[PaymentModes.CASH] += monthlyFlows[PaymentModes.CASH].income - monthlyFlows[PaymentModes.CASH].expense;
-    runningBalances[PaymentModes.GOSATS] += monthlyFlows[PaymentModes.GOSATS].income - monthlyFlows[PaymentModes.GOSATS].expense;
-    
-    // Liabilities (Credit Cards): Outstanding dues increase with Expense, decrease with Income (Payments)
-    runningBalances[PaymentModes.ICICI] += monthlyFlows[PaymentModes.ICICI].expense - monthlyFlows[PaymentModes.ICICI].income;
-    runningBalances[PaymentModes.HDFC] += monthlyFlows[PaymentModes.HDFC].expense - monthlyFlows[PaymentModes.HDFC].income;
+    // Update running balances based on channel type
+    allChannels.forEach(ch => {
+      const flow = monthlyFlows[ch.name];
+      if (ch.type === 'asset') {
+        runningBalances[ch.name] += flow.income - flow.expense;
+      } else {
+        // liability: outstanding increases with spend, decreases with payment
+        runningBalances[ch.name] += flow.expense - flow.income;
+      }
+    });
 
-    // Capture ending balances for this month
     const closingBalances = { ...runningBalances };
 
-    // Calculate Net starting and ending balances for overall stats
-    const monthOpening = openingBalances[PaymentModes.CASH] + openingBalances[PaymentModes.GOSATS] - openingBalances[PaymentModes.ICICI] - openingBalances[PaymentModes.HDFC];
-    const monthClosing = closingBalances[PaymentModes.CASH] + closingBalances[PaymentModes.GOSATS] - closingBalances[PaymentModes.ICICI] - closingBalances[PaymentModes.HDFC];
+    // Net balance = sum of assets − sum of liabilities
+    const netBalance = (balMap) => {
+      let net = 0;
+      allChannels.forEach(ch => {
+        net += ch.type === 'asset' ? balMap[ch.name] : -balMap[ch.name];
+      });
+      return net;
+    };
 
-    const income = monthTxs.filter(tx => tx.type === 'income' && tx.category !== 'Debt Recovery').reduce((sum, tx) => sum + tx.amount, 0);
-    const expense = monthTxs.filter(tx => tx.type === 'expense' && tx.category !== 'Lent/Loan').reduce((sum, tx) => sum + tx.amount, 0);
+    const income = monthTxs.filter(tx => tx.type === 'income' && tx.category !== 'Debt Recovery').reduce((s,tx) => s + tx.amount, 0);
+    const expense = monthTxs.filter(tx => tx.type === 'expense' && tx.category !== 'Lent/Loan').reduce((s,tx) => s + tx.amount, 0);
 
     summaries[m] = {
-      opening: monthOpening,
+      opening: netBalance(openingBalances),
       income,
       expense,
-      closing: monthClosing,
-      channels: {
-        starting: openingBalances,
-        monthly: monthlyFlows,
-        ending: closingBalances
-      }
+      closing: netBalance(closingBalances),
+      channels: { starting: openingBalances, monthly: monthlyFlows, ending: closingBalances }
     };
   }
 
-  // If selected month is somehow outside the transaction range, calculate it
+  // If selected month is outside the transaction range
   if (!summaries[state.selectedMonth]) {
-    const monthOpening = runningBalances[PaymentModes.CASH] + runningBalances[PaymentModes.GOSATS] - runningBalances[PaymentModes.ICICI] - runningBalances[PaymentModes.HDFC];
+    const netNow = getAllChannels().reduce((n,ch) => n + (ch.type === 'asset' ? runningBalances[ch.name] : -runningBalances[ch.name]), 0);
     summaries[state.selectedMonth] = {
-      opening: monthOpening,
-      income: 0,
-      expense: 0,
-      closing: monthOpening,
-      channels: {
-        starting: { ...runningBalances },
-        monthly: {
-          [PaymentModes.CASH]: { income: 0, expense: 0 },
-          [PaymentModes.ICICI]: { income: 0, expense: 0 },
-          [PaymentModes.HDFC]: { income: 0, expense: 0 },
-          [PaymentModes.GOSATS]: { income: 0, expense: 0 }
-        },
-        ending: { ...runningBalances }
-      }
+      opening: netNow, income: 0, expense: 0, closing: netNow,
+      channels: { starting: { ...runningBalances }, monthly: makeFlowMap(), ending: { ...runningBalances } }
     };
   }
 
@@ -444,7 +471,8 @@ function renderDashboardMetrics() {
     }
     if (tx.type === 'expense' && tx.category === 'Lent/Loan') {
       tempDebts[nameKey].lent += tx.amount;
-    } else if (tx.type === 'income' && (tx.category === 'Debt Recovery' || tx.category === 'Personal Transfer')) {
+    } else if (tx.type === 'income' && tx.category === 'Debt Recovery') {
+      // Only count as recovery if we actually lent them money (checked after full loop)
       tempDebts[nameKey].recovered += tx.amount;
     }
   });
@@ -464,8 +492,6 @@ function renderDashboardMetrics() {
   // Payment Mode details tracking
   renderPaymentModeSummary();
 }
-
-// Calculate and render payment mode summary list
 function renderPaymentModeSummary() {
   const listElement = document.getElementById('paymentModesList');
   if (!listElement) return;
@@ -474,88 +500,52 @@ function renderPaymentModeSummary() {
   const currentSummary = summaries[state.selectedMonth];
   if (!currentSummary || !currentSummary.channels) return;
 
-  const starting = currentSummary.channels.starting;
-  const monthly = currentSummary.channels.monthly;
-  const ending = currentSummary.channels.ending;
+  const { starting, monthly, ending } = currentSummary.channels;
+  const allChannels = getAllChannels();
 
-  listElement.innerHTML = `
-    <!-- Cash Card -->
-    <div class="payment-mode-pill-card cash">
-      <div class="payment-mode-info">
-        <div class="payment-mode-avatar">💵</div>
-        <div>
-          <div class="payment-mode-name">Cash</div>
-          <div class="payment-mode-type">Physical Balance</div>
-        </div>
-      </div>
-      <div style="text-align: right;">
-        <div class="payment-mode-amount" style="color: var(--accent-income);">
-          ₹${ending[PaymentModes.CASH].toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-        </div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">
-          Start: ₹${starting[PaymentModes.CASH].toLocaleString('en-IN')} | In: ₹${monthly[PaymentModes.CASH].income.toLocaleString('en-IN')} | Out: ₹${monthly[PaymentModes.CASH].expense.toLocaleString('en-IN')}
-        </div>
-      </div>
-    </div>
+  listElement.innerHTML = allChannels.map(ch => {
+    const startBal = starting[ch.name] ?? 0;
+    const flow     = monthly[ch.name]  ?? { income: 0, expense: 0 };
+    const endBal   = ending[ch.name]   ?? 0;
 
-    <!-- ICICI Card -->
-    <div class="payment-mode-pill-card icici">
-      <div class="payment-mode-info">
-        <div class="payment-mode-avatar">💳</div>
-        <div>
-          <div class="payment-mode-name">ICICI Amazon Pay</div>
-          <div class="payment-mode-type">Credit Card Dues</div>
-        </div>
-      </div>
-      <div style="text-align: right;">
-        <div class="payment-mode-amount" style="color: ${ending[PaymentModes.ICICI] > 0 ? 'var(--accent-expense)' : 'var(--accent-income)'};">
-          ₹${ending[PaymentModes.ICICI].toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-        </div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">
-          Start: ₹${starting[PaymentModes.ICICI].toLocaleString('en-IN')} | Spent: ₹${monthly[PaymentModes.ICICI].expense.toLocaleString('en-IN')} | Paid: ₹${monthly[PaymentModes.ICICI].income.toLocaleString('en-IN')}
-        </div>
-      </div>
-    </div>
+    // For assets: balance shown in green. For liabilities: red if owed, green if clear.
+    const isLiab = ch.type === 'liability';
+    const amtColor = isLiab
+      ? (endBal > 0 ? 'var(--accent-expense)' : 'var(--accent-income)')
+      : 'var(--accent-income)';
 
-    <!-- HDFC Card -->
-    <div class="payment-mode-pill-card hdfc">
-      <div class="payment-mode-info">
-        <div class="payment-mode-avatar">💳</div>
-        <div>
-          <div class="payment-mode-name">HDFC TATA Neu</div>
-          <div class="payment-mode-type">Credit Card Dues</div>
-        </div>
-      </div>
-      <div style="text-align: right;">
-        <div class="payment-mode-amount" style="color: ${ending[PaymentModes.HDFC] > 0 ? 'var(--accent-expense)' : 'var(--accent-income)'};">
-          ₹${ending[PaymentModes.HDFC].toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-        </div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">
-          Start: ₹${starting[PaymentModes.HDFC].toLocaleString('en-IN')} | Spent: ₹${monthly[PaymentModes.HDFC].expense.toLocaleString('en-IN')} | Paid: ₹${monthly[PaymentModes.HDFC].income.toLocaleString('en-IN')}
-        </div>
-      </div>
-    </div>
+    const subLine = isLiab
+      ? `Start: ₹${startBal.toLocaleString('en-IN')} | Spent: ₹${flow.expense.toLocaleString('en-IN')} | Paid: ₹${flow.income.toLocaleString('en-IN')}`
+      : `Start: ₹${startBal.toLocaleString('en-IN')} | In: ₹${flow.income.toLocaleString('en-IN')} | Out: ₹${flow.expense.toLocaleString('en-IN')}`;
 
-    <!-- Go Sats Card -->
-    <div class="payment-mode-pill-card gosats">
-      <div class="payment-mode-info">
-        <div class="payment-mode-avatar">⚡</div>
-        <div>
-          <div class="payment-mode-name">Go Sats</div>
-          <div class="payment-mode-type">Prepaid Balance</div>
+    const deleteBtn = ch.isBuiltin ? '' : `<button class="delete-channel-btn" onclick="deleteChannel('${ch.key}')" title="Remove channel">✕</button>`;
+
+    return `
+      <div class="payment-mode-pill-card" style="--ch-color: ${ch.color}; border-color: ${ch.color}22; background: linear-gradient(135deg, var(--glass-bg), ${ch.color}08);">
+        <div class="payment-mode-info">
+          <div class="payment-mode-avatar" style="background: ${ch.color}18; color: ${ch.color};">${ch.emoji}</div>
+          <div>
+            <div class="payment-mode-name" style="display:flex; align-items:center; gap:0.35rem;">
+              ${ch.name}
+              ${deleteBtn}
+            </div>
+            <div class="payment-mode-type">${isLiab ? 'Credit Card Dues' : (ch.label || 'Balance')}</div>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div class="payment-mode-amount" style="color: ${amtColor};">
+            ₹${endBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">
+            ${subLine}
+          </div>
         </div>
       </div>
-      <div style="text-align: right;">
-        <div class="payment-mode-amount" style="color: var(--accent-income);">
-          ₹${ending[PaymentModes.GOSATS].toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-        </div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">
-          Start: ₹${starting[PaymentModes.GOSATS].toLocaleString('en-IN')} | In: ₹${monthly[PaymentModes.GOSATS].income.toLocaleString('en-IN')} | Out: ₹${monthly[PaymentModes.GOSATS].expense.toLocaleString('en-IN')}
-        </div>
-      </div>
-    </div>
-  `;
+    `;
+  }).join('');
 }
+
+// Calculate and render payment mode summary list
 
 // Render Transactions List Table
 function renderTransactionsTable(filterSearch = '', filterType = 'all', filterMode = 'all') {
@@ -745,7 +735,7 @@ function renderLentTracker() {
 
     if (tx.type === 'expense' && tx.category === 'Lent/Loan') {
       debts[nameKey].lent += tx.amount;
-    } else if (tx.type === 'income' && (tx.category === 'Debt Recovery' || tx.category === 'Personal Transfer')) {
+    } else if (tx.type === 'income' && tx.category === 'Debt Recovery') {
       debts[nameKey].recovered += tx.amount;
     }
   });
@@ -889,8 +879,8 @@ function switchTab(tabName) {
   } else {
     // Analytics or Overview
     document.getElementById('backupPanel').style.display = 'none';
-    txTablePanel.style.display = 'flex'; // Keep it at bottom of overview or analytics if needed, but let's hide/show cleanly
-    txTablePanel.style.display = (tabName === 'overview' || tabName === 'transactions') ? 'flex' : 'none';
+    // Show the ledger on overview, hide on analytics
+    txTablePanel.style.display = tabName === 'overview' ? 'flex' : 'none';
   }
 }
 
@@ -1363,6 +1353,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Bind Submit Button
   document.getElementById('addTxBtn')?.addEventListener('click', submitNlpTransaction);
 
+  // Bind the Add Channel "+" button
+  const addChannelBtn = document.getElementById('addChannelBtn');
+  if (addChannelBtn) {
+    addChannelBtn.addEventListener('click', openAddChannelModal);
+  }
+
+  // Populate all payment mode selects on load
+  populatePaymentModeSelects();
+
   // Set Starting base balance listener
   const setBaseBtn = document.getElementById('setBaseBalanceBtn');
   if (setBaseBtn) {
@@ -1386,3 +1385,116 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshDashboard();
   switchTab('overview');
 });
+
+// ========== Add Payment Channel Modal Controller ==========
+
+let _chSelectedType  = 'asset';
+let _chSelectedEmoji = '💳';
+let _chSelectedColor = '#6366f1';
+
+function openAddChannelModal() {
+  // Reset form state
+  document.getElementById('chNameInput').value = '';
+  _chSelectedType  = 'asset';
+  _chSelectedEmoji = '💳';
+  _chSelectedColor = '#6366f1';
+
+  // Reset type buttons
+  document.getElementById('chTypeAsset').classList.add('active');
+  document.getElementById('chTypeLiab').classList.remove('active');
+
+  // Reset emoji selection
+  document.querySelectorAll('.emoji-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.emoji === _chSelectedEmoji);
+  });
+
+  // Reset color selection
+  document.querySelectorAll('.color-swatch').forEach(el => {
+    el.classList.toggle('selected', el.dataset.color === _chSelectedColor);
+  });
+
+  document.getElementById('addChannelModal').classList.add('active');
+}
+
+function closeAddChannelModal() {
+  document.getElementById('addChannelModal').classList.remove('active');
+}
+
+function selectChannelType(type) {
+  _chSelectedType = type;
+  const assetBtn = document.getElementById('chTypeAsset');
+  const liabBtn  = document.getElementById('chTypeLiab');
+  if (type === 'asset') {
+    assetBtn.classList.add('active');
+    assetBtn.classList.remove('liability');
+    liabBtn.classList.remove('active');
+  } else {
+    liabBtn.classList.add('active');
+    assetBtn.classList.remove('active');
+  }
+}
+
+function selectChannelEmoji(el) {
+  _chSelectedEmoji = el.dataset.emoji;
+  document.querySelectorAll('.emoji-option').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectChannelColor(el) {
+  _chSelectedColor = el.dataset.color;
+  document.querySelectorAll('.color-swatch').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function saveNewChannel() {
+  const name = document.getElementById('chNameInput').value.trim();
+  if (!name) {
+    showToast("Please enter a channel name.", "error");
+    return;
+  }
+
+  // Check for duplicates
+  const existing = getAllChannels();
+  if (existing.some(ch => ch.name.toLowerCase() === name.toLowerCase())) {
+    showToast("A channel with this name already exists.", "error");
+    return;
+  }
+
+  // Create a unique key from the name
+  const key = 'custom_' + name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + Date.now();
+
+  const newChannel = {
+    key,
+    name,
+    type:      _chSelectedType,
+    emoji:     _chSelectedEmoji,
+    color:     _chSelectedColor,
+    isBuiltin: false,
+    label:     _chSelectedType === 'asset' ? 'Balance' : 'Credit Card Dues'
+  };
+
+  const customs = getCustomChannels();
+  customs.push(newChannel);
+  saveCustomChannels(customs);
+
+  closeAddChannelModal();
+  populatePaymentModeSelects();
+  refreshDashboard();
+  showToast(`✅ "${name}" added as a payment channel!`, "success");
+}
+
+window.deleteChannel = function(key) {
+  if (!confirm("Remove this payment channel? Existing transactions using it will not be deleted.")) return;
+  let customs = getCustomChannels();
+  customs = customs.filter(ch => ch.key !== key);
+  saveCustomChannels(customs);
+  populatePaymentModeSelects();
+  refreshDashboard();
+  showToast("Channel removed.", "success");
+};
+
+// Close modal on overlay click
+document.getElementById('addChannelModal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeAddChannelModal();
+});
+

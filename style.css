@@ -1710,4 +1710,178 @@ body {
 }
 
 
+/* ========== Add Payment Channel Modal ========== */
+.add-channel-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.add-channel-modal-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+.add-channel-modal-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.25s ease;
+}
+.add-channel-modal-overlay.active .add-channel-modal-card {
+  transform: translateY(0) scale(1);
+}
+.add-channel-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+.add-channel-modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+.add-channel-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  transition: color 0.2s, background 0.2s;
+}
+.add-channel-close-btn:hover {
+  color: var(--text-primary);
+  background: var(--glass-bg);
+}
+.emoji-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.emoji-option {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--glass-border);
+  background: var(--glass-bg);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.emoji-option:hover { transform: scale(1.12); border-color: var(--accent-balance); }
+.emoji-option.selected {
+  border-color: var(--accent-balance);
+  background: rgba(99,102,241,0.15);
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.3);
+}
+.color-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.color-swatch {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s, border-color 0.2s;
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.selected {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.25);
+}
+.type-toggle-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.type-toggle-btn {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.type-toggle-btn:hover { border-color: var(--accent-balance); color: var(--text-primary); }
+.type-toggle-btn.active {
+  background: rgba(99,102,241,0.15);
+  border-color: var(--accent-balance);
+  color: var(--accent-balance);
+}
+.type-toggle-btn.active.liability {
+  background: rgba(239,68,68,0.1);
+  border-color: var(--accent-expense);
+  color: var(--accent-expense);
+}
+.add-channel-plus-btn {
+  background: rgba(99,102,241,0.12);
+  border: 1.5px solid rgba(99,102,241,0.3);
+  color: var(--accent-balance);
+  border-radius: var(--radius-sm);
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.add-channel-plus-btn:hover {
+  background: rgba(99,102,241,0.25);
+  border-color: var(--accent-balance);
+  transform: scale(1.08);
+}
+.delete-channel-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+  opacity: 0.6;
+  line-height: 1;
+}
+.delete-channel-btn:hover {
+  color: var(--accent-expense);
+  background: rgba(239,68,68,0.1);
+  opacity: 1;
+}
+
+
+
+
 

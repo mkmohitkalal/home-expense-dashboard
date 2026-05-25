@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="FinanceFlow">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=15">
+  <link rel="stylesheet" href="style.css?v=17">
   <!-- Chart.js for data visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -257,7 +257,8 @@
         <!-- Right Pane: Cards and Cash tracker details -->
         <div class="glass-panel" id="paymentModesPanel">
           <div class="panel-header">
-            <h2><span>💳</span> Payment Channels Spent</h2>
+            <h2><span>💳</span> Payment Channels</h2>
+            <button class="add-channel-plus-btn" id="addChannelBtn" title="Add a new payment channel">＋</button>
           </div>
           <div class="payment-status-grid" id="paymentModesList">
             <!-- Rendered dynamically by JavaScript -->
@@ -315,13 +316,9 @@
               <option value="income">Incomes Only</option>
               <option value="expense">Expenses Only</option>
             </select>
-            <!-- Payment mode filter -->
+            <!-- Payment mode filter (options populated dynamically by JS) -->
             <select class="filter-select" id="filterMode" aria-label="Filter transactions by payment mode">
               <option value="all">All Payment Modes</option>
-              <option value="Cash">Cash</option>
-              <option value="ICICI Amazon Pay Credit Card">ICICI Amazon Pay Credit Card</option>
-              <option value="HDFC TATA Neu Credit Card">HDFC TATA Neu Credit Card</option>
-              <option value="Go Sats Prepaid Debit Card">Go Sats Prepaid Debit Card</option>
             </select>
           </div>
         </div>
@@ -468,10 +465,7 @@
             <div class="form-group">
               <label for="formPayment">Payment Mode</label>
               <select class="form-control" id="formPayment" required>
-                <option value="Cash">Cash</option>
-                <option value="ICICI Amazon Pay Credit Card">ICICI Amazon Pay Credit Card</option>
-                <option value="HDFC TATA Neu Credit Card">HDFC TATA Neu Credit Card</option>
-                <option value="Go Sats Prepaid Debit Card">Go Sats Prepaid Debit Card</option>
+                <!-- Options populated dynamically by JS -->
               </select>
             </div>
           </div>
@@ -507,6 +501,73 @@
     <span class="toast-msg">Success Message</span>
   </div>
 
+  <!-- Add Payment Channel Modal -->
+  <div class="add-channel-modal-overlay" id="addChannelModal">
+    <div class="add-channel-modal-card">
+      <div class="add-channel-modal-header">
+        <h3>➕ Add Payment Channel</h3>
+        <button class="add-channel-close-btn" onclick="closeAddChannelModal()">×</button>
+      </div>
+
+      <!-- Channel Name -->
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="chNameInput" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Channel Name</label>
+        <input type="text" class="form-control" id="chNameInput" placeholder="e.g. SBI Credit Card, Paytm Wallet..." style="margin-top:0.4rem;">
+      </div>
+
+      <!-- Channel Type -->
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Channel Type</label>
+        <div class="type-toggle-group">
+          <button class="type-toggle-btn active" id="chTypeAsset" onclick="selectChannelType('asset')">
+            💰 Asset (Cash/Debit/Prepaid)
+          </button>
+          <button class="type-toggle-btn liability" id="chTypeLiab" onclick="selectChannelType('liability')">
+            💳 Liability (Credit Card)
+          </button>
+        </div>
+        <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.5rem;">
+          Asset = your money (balance). &nbsp;Liability = credit card (you owe).
+        </div>
+      </div>
+
+      <!-- Emoji Icon Pick -->
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Icon</label>
+        <div class="emoji-picker-grid" id="chEmojiPicker">
+          <div class="emoji-option selected" data-emoji="💳" onclick="selectChannelEmoji(this)">💳</div>
+          <div class="emoji-option" data-emoji="💰" onclick="selectChannelEmoji(this)">💰</div>
+          <div class="emoji-option" data-emoji="🏦" onclick="selectChannelEmoji(this)">🏦</div>
+          <div class="emoji-option" data-emoji="⚡" onclick="selectChannelEmoji(this)">⚡</div>
+          <div class="emoji-option" data-emoji="📱" onclick="selectChannelEmoji(this)">📱</div>
+          <div class="emoji-option" data-emoji="🎯" onclick="selectChannelEmoji(this)">🎯</div>
+          <div class="emoji-option" data-emoji="💵" onclick="selectChannelEmoji(this)">💵</div>
+          <div class="emoji-option" data-emoji="🔑" onclick="selectChannelEmoji(this)">🔑</div>
+          <div class="emoji-option" data-emoji="🌐" onclick="selectChannelEmoji(this)">🌐</div>
+          <div class="emoji-option" data-emoji="🚀" onclick="selectChannelEmoji(this)">🚀</div>
+        </div>
+      </div>
+
+      <!-- Color Pick -->
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Accent Color</label>
+        <div class="color-picker-grid" id="chColorPicker">
+          <div class="color-swatch selected" data-color="#6366f1" style="background:#6366f1;" onclick="selectChannelColor(this)"></div>
+          <div class="color-swatch" data-color="#10b981" style="background:#10b981;" onclick="selectChannelColor(this)"></div>
+          <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b;" onclick="selectChannelColor(this)"></div>
+          <div class="color-swatch" data-color="#ef4444" style="background:#ef4444;" onclick="selectChannelColor(this)"></div>
+          <div class="color-swatch" data-color="#3b82f6" style="background:#3b82f6;" onclick="selectChannelColor(this)"></div>
+          <div class="color-swatch" data-color="#ec4899" style="background:#ec4899;" onclick="selectChannelColor(this)"></div>
+          <div class="color-swatch" data-color="#14b8a6" style="background:#14b8a6;" onclick="selectChannelColor(this)"></div>
+          <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6;" onclick="selectChannelColor(this)"></div>
+          <div class="color-swatch" data-color="#f97316" style="background:#f97316;" onclick="selectChannelColor(this)"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;" onclick="saveNewChannel()">✅ Add Channel</button>
+    </div>
+  </div>
+
   <!-- Google Sync Auth Gate Overlay -->
   <div class="auth-gate-overlay" id="authGate" style="display: none;">
     <div class="auth-gate-card">
@@ -528,10 +589,10 @@
   </div>
 
   <!-- Javascript Modules Loading -->
-  <script src="parser.js?v=15"></script>
-  <script src="charts.js?v=15"></script>
-  <script src="gdrive.js?v=15"></script>
-  <script src="app.js?v=15"></script>
+  <script src="parser.js?v=17"></script>
+  <script src="charts.js?v=17"></script>
+  <script src="gdrive.js?v=17"></script>
+  <script src="app.js?v=17"></script>
   <!-- Google API Client and Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" onload="gisLoad()" async defer></script>
   <script src="https://apis.google.com/js/api.js" onload="gapiLoad()" async defer></script>
