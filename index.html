@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="घर खर्च">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=18">
+  <link rel="stylesheet" href="style.css?v=35">
   <!-- Chart.js for data visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -120,18 +120,33 @@
       </div>
       
       <!-- Top header area -->
-      <header class="top-header">
+      <header class="top-header" id="mainTopHeader">
         <div class="welcome-msg">
           <h1 id="mainHeading">Home Expense Dashboard</h1>
-          <p>Easily manage monthly savings, cash, credit cards, and carryover flows.</p>
+          <p id="mainDesc">Easily manage monthly savings, cash, credit cards, and carryover flows.</p>
         </div>
         <div class="current-time" id="timeBox">
           <span>🕒</span> <span id="currentLocalTime">May 2026</span>
         </div>
       </header>
 
+      <!-- Top-Level Dashboard Selector Bar -->
+      <div class="cc-subnav-container" id="dashboardToggleBar" style="margin-top: 1rem; margin-bottom: 1.5rem;">
+        <div class="cc-subnav-scroll">
+          <div class="cc-subnav">
+            <button class="cc-subnav-btn active" id="dbToggleHome" style="--card-theme-color: var(--primary);" onclick="switchDashboard('home')">
+              🏠 Home Expense Dashboard
+            </button>
+            <button class="cc-subnav-btn" id="dbToggleCc" onclick="switchDashboard('credit-card')">
+              💳 Credit Card Expenses
+            </button>
+          </div>
+        </div>
+        <button class="cc-add-card-btn" onclick="handleDashboardTogglePlus()" title="Quick Add">+</button>
+      </div>
+
       <!-- Stats Summary cards: Detailed Boxes -->
-      <section class="stats-grid" aria-label="Monthly Financial Summaries">
+      <section class="stats-grid" id="mainStatsGrid" aria-label="Monthly Financial Summaries">
         <!-- 1. Carryover / Opening Balance -->
         <div class="stats-card carryover" id="openingBalanceCard">
           <div class="stats-header">
@@ -171,15 +186,15 @@
           </div>
         </div>
 
-        <!-- 3b. Lent Money / Owed to Me summary card -->
+        <!-- 3b. Money Given & Taken summary card -->
         <div class="stats-card lent" id="totalLentCard">
           <div class="stats-header">
-            <span>Owed to Me</span>
+            <span>Money Given & Taken</span>
             <div class="stats-icon">🤝</div>
           </div>
           <div class="stats-value" id="totalLentVal">₹0.00</div>
-          <div class="stats-footer">
-            <span>Outstanding personal loans</span>
+          <div class="stats-footer" id="totalLentFooter">
+            <span>Outstanding personal money</span>
           </div>
         </div>
 
@@ -265,10 +280,10 @@
           </div>
         </div>
 
-        <!-- Middle/Right Pane: Lent Tracker (Active Loans) Section -->
+        <!-- Middle/Right Pane: Personal Money Tracker Section -->
         <div class="glass-panel" id="lentTrackerPanel" style="display: none;">
           <div class="panel-header">
-            <h2><span>🤝</span> Owed to Me (Active Loans)</h2>
+            <h2><span>🤝</span> Money Given & Taken</h2>
           </div>
           <div id="lentListContainer" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
             <!-- Rendered dynamically by JavaScript -->
@@ -341,6 +356,192 @@
               <!-- Dynamically populated via JS -->
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- Credit Cards Dashboard Panel -->
+      <section class="glass-panel credit-cards-panel" id="creditCardPanel" style="display: none;">
+        <div class="panel-header">
+          <h2><span>💳</span> Credit Card Expenses Tracker</h2>
+        </div>
+
+        <!-- Sub Navigation Bar (Card Selector) -->
+        <div class="cc-subnav-container">
+          <div class="cc-subnav-scroll">
+            <div class="cc-subnav" id="ccSubnav">
+              <!-- Dynamic card tabs will be loaded here -->
+            </div>
+          </div>
+          <button class="cc-add-card-btn" id="ccAddCardBtn" onclick="openAddCardModal()" title="Add Credit Card">+</button>
+        </div>
+
+        <!-- Empty state if no cards exist -->
+        <div class="cc-empty-state" id="ccEmptyState" style="display: none; text-align: center; padding: 3rem 1.5rem; background: var(--glass-bg); border-radius: 12px; border: 1px dashed var(--glass-border);">
+          <div class="empty-icon" style="font-size: 3rem; margin-bottom: 1rem;">💳</div>
+          <h3 style="margin-bottom: 0.5rem; color: var(--text-primary);">No Credit Cards Added</h3>
+          <p style="margin-bottom: 1.5rem; color: var(--text-secondary); max-width: 400px; margin-left: auto; margin-right: auto;">Get started by adding your first credit card to track its expenses separately.</p>
+          <button class="btn btn-primary" onclick="openAddCardModal()">➕ Add Credit Card</button>
+        </div>
+
+        <!-- Active Card Workspace -->
+        <div class="cc-workspace" id="ccWorkspace">
+          
+          <!-- Top row: Premium Visual Card + Summary stats -->
+          <div class="cc-dashboard-top">
+            
+            <!-- Visual Card Wrapper -->
+            <div class="cc-visual-card-container">
+              <div class="cc-visual-card" id="ccVisualCard">
+                <div class="cc-card-glare"></div>
+                <div class="cc-card-header">
+                  <span class="cc-card-name" id="ccVisualCardName">Amazon ICICI</span>
+                  <span class="cc-card-network" id="ccVisualCardNetwork">VISA</span>
+                </div>
+                <div class="cc-card-chip">
+                  <div class="chip-line"></div>
+                </div>
+                <div class="cc-card-number" id="ccVisualCardNumber">•••• •••• •••• 4321</div>
+                <div class="cc-card-footer">
+                  <div class="cc-card-holder">
+                    <label>CARDHOLDER</label>
+                    <span>MOHIT KALAL</span>
+                  </div>
+                  <div class="cc-card-cycle">
+                    <label>BILL DATE</label>
+                    <span id="ccVisualCardCycle">15th</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cc-card-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center; width: 100%; max-width: 320px;">
+                <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;" onclick="openEditCardModal()">✏️ Edit Card</button>
+                <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: var(--accent-expense); color: var(--accent-expense);" onclick="deleteActiveCard()">🗑️ Delete Card</button>
+              </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="cc-stats-container">
+              <!-- Stats Card 1: Outstanding Balance -->
+              <div class="cc-stat-box highlight">
+                <div class="stat-header">
+                  <span>Outstanding Balance</span>
+                  <span class="stat-icon">💰</span>
+                </div>
+                <div class="stat-value" id="ccOutstandingVal">₹0.00</div>
+                <div class="stat-footer">
+                  <span id="ccBilledUnbilledSplit">₹0.00 Billed | ₹0.00 Unbilled</span>
+                </div>
+              </div>
+
+              <!-- Stats Card 1b: Combined Cards Outstanding -->
+              <div class="cc-stat-box" style="border-color: rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.04);">
+                <div class="stat-header">
+                  <span>Combined Card Dues</span>
+                  <span class="stat-icon">🏦</span>
+                </div>
+                <div class="stat-value" id="ccCombinedOutstandingVal">₹0.00</div>
+                <div class="stat-footer">
+                  <span>Total across all credit cards</span>
+                </div>
+              </div>
+
+              <!-- Stats Card 2: Limit Utilization -->
+              <div class="cc-stat-box">
+                <div class="stat-header">
+                  <span>Limit Utilization</span>
+                  <span class="stat-icon">📊</span>
+                </div>
+                <div class="stat-value" id="ccLimitPercentVal">0%</div>
+                <div class="stat-footer">
+                  <div class="progress-bar-container" style="background: rgba(255,255,255,0.05); border-radius: 4px; height: 8px; margin: 0.4rem 0; overflow: hidden; width: 100%;">
+                    <div class="progress-bar-fill" id="ccLimitBarFill" style="width: 0%; height: 100%; border-radius: 4px; transition: width 0.4s ease; background: var(--accent-balance);"></div>
+                  </div>
+                  <span id="ccLimitDetailsVal">₹0.00 used of ₹0.00 limit</span>
+                </div>
+              </div>
+
+              <!-- Stats Card 3: Billing Info -->
+              <div class="cc-stat-box">
+                <div class="stat-header">
+                  <span>Billing Info</span>
+                  <span class="stat-icon">📅</span>
+                </div>
+                <div class="stat-value" style="font-size: 1.15rem; font-weight: 700;" id="ccBillingCycleVal">Bill: 15th | Due: 3rd</div>
+                <div class="stat-footer">
+                  <span id="ccBillingCycleDetails">Payment due in approx. X days</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Middle row: Quick Action Toolbar + NLP Input Bar -->
+          <div class="cc-toolbar" style="margin-top: 1.5rem; margin-bottom: 2rem;">
+            <div class="cc-nlp-container" style="display: flex; gap: 0.5rem; width: 100%; margin-bottom: 1rem;">
+              <input type="text" class="form-control" id="ccNlpInput" placeholder="Quick log: 'Starbucks 350 on Friday' or 'Swiggy 420'..." aria-label="Quick log credit card transaction" style="flex-grow: 1;">
+              <button class="btn btn-primary" onclick="submitCcNlpExpense()">Log</button>
+            </div>
+            <div class="cc-action-buttons" style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <button class="btn btn-primary" onclick="openAddCcExpenseModal('expense')">➕ Add Expense</button>
+              <button class="btn btn-secondary" onclick="openAddCcExpenseModal('refund')" style="border-color: rgba(16, 185, 129, 0.4); color: #10b981;">➕ Add Refund</button>
+              <button class="btn btn-secondary" onclick="openCcBillPaymentModal()">💳 Record Payment</button>
+              <button class="btn btn-secondary" onclick="markAllCcAsBilled()">🧾 Cycle Bill Generated</button>
+            </div>
+          </div>
+
+          <!-- Splits / Owed tracker -->
+          <div class="glass-panel cc-splits-panel" id="ccSplitsPanel" style="margin-top: 1.5rem; display: none;">
+            <div class="panel-header">
+              <h2><span>👥</span> Money Others Owe You (Credit Card Splits)</h2>
+            </div>
+            <div class="payment-status-grid" id="ccSplitsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; width: 100%;">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Bottom row: Ledger / Expenses List -->
+          <div class="cc-ledger-section" style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+            <div class="cc-ledger-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+              <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-primary);">Transaction Ledger</h3>
+              <div class="cc-ledger-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                <input type="text" class="form-control" style="font-size: 0.85rem; padding: 0.4rem 0.8rem; width: 180px;" id="ccSearchInput" placeholder="Search description..." oninput="renderCcExpenses()">
+                <select class="form-control" style="font-size: 0.85rem; padding: 0.4rem; cursor: pointer;" id="ccStatusFilter" onchange="renderCcExpenses()">
+                  <option value="all">All Statuses</option>
+                  <option value="Unbilled">Unbilled</option>
+                  <option value="Billed">Billed</option>
+                  <option value="Paid">Paid</option>
+                </select>
+                <select class="form-control" style="font-size: 0.85rem; padding: 0.4rem; cursor: pointer;" id="ccCategoryFilter" onchange="renderCcExpenses()">
+                  <option value="all">All Categories</option>
+                  <option value="Shopping">Shopping</option>
+                  <option value="Dining">Dining</option>
+                  <option value="Utilities">Utilities</option>
+                  <option value="Fuel">Fuel</option>
+                  <option value="Travel">Travel</option>
+                  <option value="Groceries">Groceries</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="transaction-table" style="width: 100%;">
+                <thead>
+                  <tr>
+                    <th style="width: 15%;">Date</th>
+                    <th style="width: 35%;">Description</th>
+                    <th style="width: 15%;">Category</th>
+                    <th style="width: 15%;">Amount</th>
+                    <th style="width: 10%;">Status</th>
+                    <th style="width: 10%; text-align: center;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ccTxTableBody">
+                  <!-- Dynamic transactions will be loaded here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -478,8 +679,8 @@
           </div>
 
           <div class="form-group" id="formPersonRow" style="display: none;">
-            <label for="formPerson">Received From (Person / Source)</label>
-            <input type="text" class="form-control" id="formPerson" placeholder="Amit, Mom, Boss, Refund, etc.">
+            <label for="formPerson">Person Name</label>
+            <input type="text" class="form-control" id="formPerson" placeholder="e.g. Amit, Rahul, Mom...">
           </div>
 
           <div class="form-group">
@@ -568,6 +769,182 @@
     </div>
   </div>
 
+  <!-- Add/Edit Credit Card Modal -->
+  <div class="modal-overlay" id="addCardModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="ccModalTitle">➕ Add Credit Card</h3>
+        <button class="modal-close-btn" onclick="closeAddCardModal()">×</button>
+      </div>
+      <form id="ccCardForm" onsubmit="saveCreditCardForm(event)">
+        <input type="hidden" id="ccCardIdInput">
+        <div class="modal-body">
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="ccNameInput" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Card Name</label>
+            <input type="text" class="form-control" id="ccNameInput" placeholder="e.g. Amazon ICICI, HDFC Tata Neu" required style="margin-top:0.4rem;">
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label for="ccNetworkInput" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Network</label>
+              <select class="form-control" id="ccNetworkInput" style="margin-top:0.4rem; width: 100%;">
+                <option value="Visa">Visa</option>
+                <option value="Mastercard">Mastercard</option>
+                <option value="RuPay">RuPay</option>
+                <option value="Amex">Amex</option>
+                <option value="Diners Club">Diners Club</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ccLast4Input" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Last 4 Digits</label>
+              <input type="text" class="form-control" id="ccLast4Input" placeholder="e.g. 4321" maxlength="4" pattern="\d{4}" required style="margin-top:0.4rem;">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label for="ccLimitInput" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Credit Limit (₹)</label>
+              <input type="number" class="form-control" id="ccLimitInput" placeholder="e.g. 150000" min="0" required style="margin-top:0.4rem; width: 100%;">
+            </div>
+            <div class="form-group">
+              <label for="ccCycleInput" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Bill Date (Day of Month)</label>
+              <input type="number" class="form-control" id="ccCycleInput" placeholder="e.g. 15" min="1" max="31" required style="margin-top:0.4rem; width: 100%;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Card Theme Color</label>
+            <div class="color-picker-grid" id="ccColorPicker" style="margin-top:0.4rem;">
+              <div class="color-swatch selected" data-color="#ff9900" style="background:#ff9900;" onclick="selectCcCardColor(this)"></div>
+              <div class="color-swatch" data-color="#1a3a8f" style="background:#1a3a8f;" onclick="selectCcCardColor(this)"></div>
+              <div class="color-swatch" data-color="#0066b2" style="background:#0066b2;" onclick="selectCcCardColor(this)"></div>
+              <div class="color-swatch" data-color="#4f46e5" style="background:#4f46e5;" onclick="selectCcCardColor(this)"></div>
+              <div class="color-swatch" data-color="#10b981" style="background:#10b981;" onclick="selectCcCardColor(this)"></div>
+              <div class="color-swatch" data-color="#ef4444" style="background:#ef4444;" onclick="selectCcCardColor(this)"></div>
+              <div class="color-swatch" data-color="#ec4899" style="background:#ec4899;" onclick="selectCcCardColor(this)"></div>
+              <div class="color-swatch" data-color="#111827" style="background:#111827;" onclick="selectCcCardColor(this)"></div>
+              <div class="color-swatch" data-color="#78350f" style="background:#78350f;" onclick="selectCcCardColor(this)"></div>
+            </div>
+            <input type="hidden" id="ccColorInput" value="#ff9900">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAddCardModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="ccCardSubmitBtn">Add Card</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Credit Card Expense Modal -->
+  <div class="modal-overlay" id="addCcExpenseModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="ccExpenseModalTitle">➕ Add Card Expense</h3>
+        <button class="modal-close-btn" onclick="closeAddCcExpenseModal()">×</button>
+      </div>
+      <form id="ccExpenseForm" onsubmit="saveCcExpenseForm(event)">
+        <input type="hidden" id="ccExpenseIdInput">
+        <div class="modal-body">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label for="ccExpenseDate" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Date</label>
+              <input type="date" class="form-control" id="ccExpenseDate" required style="margin-top:0.4rem; width: 100%;">
+            </div>
+            <div class="form-group">
+              <label for="ccExpenseType" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Type</label>
+              <select class="form-control" id="ccExpenseType" required style="margin-top:0.4rem; width: 100%; cursor: pointer;" onchange="syncCcExpenseModalType()">
+                <option value="expense">Expense</option>
+                <option value="refund">Refund</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ccExpenseAmount" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Amount (₹)</label>
+              <input type="number" class="form-control" id="ccExpenseAmount" step="0.01" min="0.01" placeholder="e.g. 250" required style="margin-top:0.4rem; width: 100%;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="ccExpenseDesc" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Description</label>
+            <input type="text" class="form-control" id="ccExpenseDesc" placeholder="e.g. Amazon Shopping, Zomato dinner" required style="margin-top:0.4rem;">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="ccExpensePerson" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Paid For (Person Name - Optional)</label>
+            <input type="text" class="form-control" id="ccExpensePerson" placeholder="e.g. Amit, Vijay (keeps track of what they owe you)" style="margin-top:0.4rem;">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label for="ccExpenseCategory" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Category</label>
+              <select class="form-control" id="ccExpenseCategory" style="margin-top:0.4rem; width: 100%;">
+                <option value="Shopping">🛍️ Shopping</option>
+                <option value="Dining">🍽️ Dining</option>
+                <option value="Utilities">💡 Utilities</option>
+                <option value="Fuel">⛽ Fuel</option>
+                <option value="Travel">✈️ Travel</option>
+                <option value="Groceries">🛒 Groceries</option>
+                <option value="Others">📦 Others</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ccExpenseStatus" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Status</label>
+              <select class="form-control" id="ccExpenseStatus" style="margin-top:0.4rem; width: 100%;">
+                <option value="Unbilled">🔴 Unbilled</option>
+                <option value="Billed">🟡 Billed</option>
+                <option value="Paid">🟢 Paid</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAddCcExpenseModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="ccExpenseSubmitBtn">Add Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Record Credit Card Bill Payment Modal -->
+  <div class="modal-overlay" id="ccBillPaymentModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>💳 Record Bill Payment</h3>
+        <button class="modal-close-btn" onclick="closeCcBillPaymentModal()">×</button>
+      </div>
+      <form id="ccPaymentForm" onsubmit="saveCcPaymentForm(event)">
+        <div class="modal-body">
+          <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-secondary);" id="ccPaymentDuesHelp">
+            Paying outstanding dues for active card.
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label for="ccPaymentDate" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Payment Date</label>
+              <input type="date" class="form-control" id="ccPaymentDate" required style="margin-top:0.4rem; width: 100%;">
+            </div>
+            <div class="form-group">
+              <label for="ccPaymentAmount" style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Payment Amount (₹)</label>
+              <input type="number" class="form-control" id="ccPaymentAmount" step="0.01" min="0.01" required style="margin-top:0.4rem; width: 100%;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary); font-weight:600;">Which Transactions to Mark as Paid?</label>
+            <select class="form-control" id="ccPaymentTarget" style="margin-top:0.4rem; width: 100%;">
+              <option value="billed">Only Billed Dues</option>
+              <option value="all">Billed & Unbilled (Clear All Dues)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeCcBillPaymentModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+
   <!-- Google Sync Auth Gate Overlay -->
   <div class="auth-gate-overlay" id="authGate" style="display: none;">
     <div class="auth-gate-card">
@@ -589,10 +966,10 @@
   </div>
 
   <!-- Javascript Modules Loading -->
-  <script src="parser.js?v=18"></script>
-  <script src="charts.js?v=18"></script>
-  <script src="gdrive.js?v=18"></script>
-  <script src="app.js?v=18"></script>
+  <script src="parser.js?v=35"></script>
+  <script src="charts.js?v=35"></script>
+  <script src="gdrive.js?v=35"></script>
+  <script src="app.js?v=35"></script>
   <!-- Google API Client and Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" onload="gisLoad()" async defer></script>
   <script src="https://apis.google.com/js/api.js" onload="gapiLoad()" async defer></script>

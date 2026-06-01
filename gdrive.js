@@ -257,6 +257,14 @@ async function startSync() {
           localStorage.setItem('base_opening_balance', cloudBaseBalance.toString());
           localStorage.setItem('financeflow_last_updated', cloudLastUpdated.toString());
           
+          // Restore Credit Cards tracker data if present in cloud file
+          if (fileData.credit_card_tracker_data) {
+            localStorage.setItem('credit_card_tracker_data', JSON.stringify(fileData.credit_card_tracker_data));
+            if (typeof loadCreditCardTrackerData === 'function') {
+              loadCreditCardTrackerData();
+            }
+          }
+          
           showToast("Loaded synced data from Google Drive!", "success");
           if (typeof refreshDashboard === 'function') {
             refreshDashboard();
@@ -320,11 +328,13 @@ async function createCloudFile() {
   const localTxs = state.transactions;
   const localBaseBalance = parseFloat(localStorage.getItem('base_opening_balance') || '0');
   const localLastUpdated = parseInt(localStorage.getItem('financeflow_last_updated') || '0', 10);
+  const localCreditCardData = JSON.parse(localStorage.getItem('credit_card_tracker_data')) || null;
 
   const payload = {
     transactions: localTxs,
     base_opening_balance: localBaseBalance,
-    last_updated: localLastUpdated
+    last_updated: localLastUpdated,
+    credit_card_tracker_data: localCreditCardData
   };
 
   const content = JSON.stringify(payload);
@@ -369,11 +379,13 @@ async function updateCloudFile() {
     const localTxs = state.transactions;
     const localBaseBalance = parseFloat(localStorage.getItem('base_opening_balance') || '0');
     const localLastUpdated = parseInt(localStorage.getItem('financeflow_last_updated') || '0', 10);
+    const localCreditCardData = JSON.parse(localStorage.getItem('credit_card_tracker_data')) || null;
 
     const payload = {
       transactions: localTxs,
       base_opening_balance: localBaseBalance,
-      last_updated: localLastUpdated
+      last_updated: localLastUpdated,
+      credit_card_tracker_data: localCreditCardData
     };
 
     const content = JSON.stringify(payload);

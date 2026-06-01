@@ -1879,9 +1879,333 @@ body {
   color: var(--accent-expense);
   background: rgba(239,68,68,0.1);
   opacity: 1;
+}/* ==========================================================================
+   CREDIT CARDS DASHBOARD SECTION
+   ========================================================================== */
+
+/* Subnav Selector */
+.cc-subnav-container {
+  display: flex;
+  align-items: center;
+  background: rgba(10, 15, 30, 0.4);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 6px;
+  margin-bottom: 20px;
+  gap: 8px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.cc-subnav-scroll {
+  display: flex;
+  flex-grow: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cc-subnav-scroll::-webkit-scrollbar {
+  display: none;
+}
+.cc-subnav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cc-subnav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s ease;
+}
+.cc-subnav-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+.cc-subnav-btn.active {
+  background: var(--card-theme-color, var(--primary));
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.cc-add-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.cc-add-card-btn:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  transform: scale(1.05);
 }
 
+/* Active Workspace Grid */
+.cc-workspace {
+  display: flex;
+  flex-direction: column;
+}
+.cc-dashboard-top {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
 
+@media (max-width: 900px) {
+  .cc-dashboard-top {
+    grid-template-columns: 1fr;
+  }
+  .cc-visual-card-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}
 
+/* Visual Card Mockup */
+.cc-visual-card {
+  width: 320px;
+  height: 202px;
+  border-radius: 16px;
+  position: relative;
+  padding: 22px;
+  color: #ffffff;
+  overflow: hidden;
+  font-family: 'Outfit', 'Inter', monospace;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, var(--card-color-start, #3b82f6) 0%, var(--card-color-end, #1d4ed8) 100%);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.cc-visual-card:hover {
+  transform: translateY(-5px) rotateX(2deg) rotateY(-5deg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+.cc-card-glare {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 50%);
+  transform: rotate(25deg);
+  pointer-events: none;
+}
+.cc-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+}
+.cc-card-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.cc-card-network {
+  font-size: 0.95rem;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  opacity: 0.9;
+}
+.cc-card-chip {
+  width: 44px;
+  height: 32px;
+  background: linear-gradient(135deg, #ffd700 0%, #d4af37 50%, #b8860b 100%);
+  border-radius: 6px;
+  position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  margin-top: 5px;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  z-index: 2;
+}
+.cc-card-chip .chip-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+.cc-card-number {
+  font-size: 1.25rem;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  word-spacing: 4px;
+  margin: 15px 0 10px 0;
+  z-index: 2;
+}
+.cc-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 2;
+}
+.cc-card-holder, .cc-card-cycle {
+  display: flex;
+  flex-direction: column;
+}
+.cc-card-holder label, .cc-card-cycle label {
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.cc-card-holder span, .cc-card-cycle span {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+}
 
+/* Stats containers */
+.cc-stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+.cc-stat-box {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.cc-stat-box.highlight {
+  border-color: var(--accent-balance);
+  background: rgba(99, 102, 241, 0.05);
+}
+.cc-stat-box .stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.cc-stat-box .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0.4rem 0;
+}
+.cc-stat-box .stat-footer {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
 
+/* Status Tags for Table */
+.status-tag {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+.status-unbilled {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-expense);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.status-billed {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.status-paid {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-balance);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* CC Form swatches */
+#ccColorPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+#ccColorPicker .color-swatch {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+#ccColorPicker .color-swatch:hover {
+  transform: scale(1.1);
+}
+#ccColorPicker .color-swatch.selected {
+  border-color: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+/* Hidden Helper Utility */
+.hidden {
+  display: none !important;
+}
+
+/* Credit Cards Dashboard Layout Mode */
+.app-container.cc-active .sidebar {
+  display: none !important;
+}
+.app-container.cc-active .main-content {
+  margin-left: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Debt Mode Card Styles */
+.lent-card.debt-mode::before {
+  background: #8b5cf6;
+}
+.lent-card.debt-mode:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.15);
+}
+.lent-outstanding-badge.debt {
+  background: rgba(139, 92, 246, 0.12);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+.lent-sub.debt {
+  color: #8b5cf6;
+}

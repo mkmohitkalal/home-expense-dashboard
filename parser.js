@@ -19,7 +19,8 @@ const ExpenseCategories = [
   'Shopping',
   'Medical & Health',
   'Rent & Maintenance',
-  'Lent/Loan',
+  'Money Given',
+  'Money Returned',
   'Contribution',
   'Others'
 ];
@@ -29,7 +30,8 @@ const IncomeCategories = [
   'Personal Transfer',
   'Refund',
   'Bonus/Interest',
-  'Debt Recovery',
+  'Money Received Back',
+  'Money Taken',
   'Contribution',
   'Others'
 ];
@@ -92,10 +94,15 @@ function parseTransactionText(text, baseDate = new Date()) {
  * Extracts the transaction type (expense or income)
  */
 function extractType(lowercaseText) {
+  // Repaid to / paid back to / returned to means we spent money to clear debt (expense)
+  if (lowercaseText.includes('to ') && (lowercaseText.includes('repaid') || lowercaseText.includes('paid back') || lowercaseText.includes('returned') || lowercaseText.includes('repay'))) {
+    return 'expense';
+  }
+
   const incomeWords = [
     'received', 'got', 'credited', 'salary', 'income', 'refund', 'bonus', 
     'earned', 'got from', 'received from', 'added', 'pocket money', 'freelance',
-    'paid back', 'got back', 'repaid', 'recovered'
+    'paid back', 'got back', 'repaid', 'recovered', 'borrowed', 'borrow'
   ];
   
   // 'returned' only means income if it's a repayment context (returned money/amount back from someone)
@@ -153,31 +160,28 @@ function extractAmount(text) {
  * Extracts payment mode (primarily for expenses, fallback to Cash/null)
  */
 function extractPaymentMode(lowercaseText, type) {
-  if (type === 'income') {
-    // For income, payment mode isn't strictly required but if they say cash/bank we can capture it
-    if (lowercaseText.includes('cash')) return PaymentModes.CASH;
-    if (lowercaseText.includes('icici')) return PaymentModes.ICICI;
-    if (lowercaseText.includes('hdfc')) return PaymentModes.HDFC;
-    if (lowercaseText.includes('go sats') || lowercaseText.includes('gosats')) return PaymentModes.GOSATS;
-    return PaymentModes.CASH; // Default to Cash for income
-  }
-
-  // Expenses payment mode matches
+  // Check for Cash keywords
   if (lowercaseText.includes('cash') || lowercaseText.includes('in hand') || lowercaseText.includes('by hand')) {
     return PaymentModes.CASH;
   }
+  // Check for ICICI card keywords (including "amazon" or "amazon pay")
   if (lowercaseText.includes('icici') || lowercaseText.includes('amazon') || lowercaseText.includes('amazon pay')) {
     return PaymentModes.ICICI;
   }
+  // Check for HDFC card keywords (including "tata" or "neu")
   if (lowercaseText.includes('hdfc') || lowercaseText.includes('tata') || lowercaseText.includes('neu')) {
     return PaymentModes.HDFC;
   }
+  // Check for GoSats card keywords (including "prepaid" or "sats")
   if (lowercaseText.includes('go sats') || lowercaseText.includes('gosats') || lowercaseText.includes('prepaid') || lowercaseText.includes('sats')) {
     return PaymentModes.GOSATS;
   }
 
-  // Default fallback if not specified
-  return null;
+  // Fallback defaults
+  if (type === 'income') {
+    return PaymentModes.CASH; // Default to Cash for income
+  }
+  return null; // Default to null for expenses
 }
 
 /**
@@ -299,13 +303,25 @@ function extractDescriptionAndCategory(text, type) {
       const name = lentToMatch[1].trim();
       if (!invalidNames.includes(name.toLowerCase())) {
         sourcePerson = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-        category = 'Lent/Loan';
-        finalDesc = `Lent to ${sourcePerson}`;
+        category = 'Money Given';
+        finalDesc = `Gave money to ${sourcePerson}`;
+      }
+    }
+    
+    // Check for Loan Repayment
+    const repayToMatch = text.match(/\b(?:repaid|repay|returned|paid\s+back)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?\s*(?:rs\.?|inr|₹|rupees|bucks)?\s*)?(?:to\s+)?([A-Za-z]+)\b/i) ||
+                         text.match(/\b(?:repaid|repay|returned|paid\s+back)\s+([A-Za-z]+)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?)\b/i);
+    if (repayToMatch) {
+      const name = repayToMatch[1].trim();
+      if (!invalidNames.includes(name.toLowerCase())) {
+        sourcePerson = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        category = 'Money Returned';
+        finalDesc = `Returned money to ${sourcePerson}`;
       }
     }
   }
 
-  // 2. Check for Debt Recovery / Return (Incomes)
+  // 2. Check for Money Received Back / Return (Incomes)
   if (type === 'income') {
     const returnFromMatch = text.match(/\b([A-Za-z]+)\s+(?:returned|paid\s+back|repaid|repay|gave\s+back)\b/i) ||
                             text.match(/\b(?:got|received|recovered|back)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?\s*(?:rs\.?|inr|₹|rupees|bucks)?\s*)?(?:back\s+)?from\s+([A-Za-z]+)\b/i);
@@ -313,8 +329,20 @@ function extractDescriptionAndCategory(text, type) {
       const name = (returnFromMatch[1] || returnFromMatch[2]).trim();
       if (!invalidNames.includes(name.toLowerCase())) {
         sourcePerson = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-        category = 'Debt Recovery';
-        finalDesc = `Recovered from ${sourcePerson}`;
+        category = 'Money Received Back';
+        finalDesc = `Got money back from ${sourcePerson}`;
+      }
+    }
+
+    // Check for Money Taken
+    const borrowFromMatch = text.match(/\b(?:borrowed|borrow|took\s+loan|took)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?\s*(?:rs\.?|inr|₹|rupees|bucks)?\s*)?(?:from\s+)?([A-Za-z]+)\b/i) ||
+                            text.match(/\b(?:borrowed|borrow|took\s+loan|took)\s+([A-Za-z]+)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?)\b/i);
+    if (borrowFromMatch) {
+      const name = borrowFromMatch[1].trim();
+      if (!invalidNames.includes(name.toLowerCase())) {
+        sourcePerson = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        category = 'Money Taken';
+        finalDesc = `Took money from ${sourcePerson}`;
       }
     }
   }
@@ -419,14 +447,14 @@ function parseCompoundTransactionText(text, baseDate = new Date()) {
           }
         }
         
-        // Inherit category if Lent/Loan and matches person context
-        if (parsed.category === 'Others' && lastCategory === 'Lent/Loan') {
+        // Inherit category if Money Given and matches person context
+        if (parsed.category === 'Others' && lastCategory === 'Money Given') {
           if (parsed.sourcePerson !== '' || trimmed.toLowerCase().includes('to ')) {
-            parsed.category = 'Lent/Loan';
+            parsed.category = 'Money Given';
             if (parsed.sourcePerson === '' && lastPerson !== '') {
               parsed.sourcePerson = lastPerson;
             }
-            parsed.description = `Lent to ${parsed.sourcePerson}`;
+            parsed.description = `Gave money to ${parsed.sourcePerson}`;
           }
         }
         
