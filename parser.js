@@ -36,7 +36,7 @@ const IncomeCategories = [
   'Others'
 ];
 
-const invalidNames = ['for', 'to', 'on', 'via', 'using', 'with', 'by', 'in', 'at', 'of', 'rs', 'inr', 'rupees', 'me', 'cash', 'card', 'icici', 'hdfc', 'sats', 'gosats', 'prepaid', 'bank', 'interest', 'salary', 'employer', 'refund', 'electricity', 'bill', 'rent', 'groceries', 'food', 'fuel', 'petrol', 'diesel', 'utility', 'utilities', 'shopping', 'medicine', 'starbucks', 'zomato', 'swiggy', 'uber', 'ola', 'movie', 'netflix', 'wifi', 'internet', 'broadband', 'mobile', 'recharge', 'dth', 'power', 'water', 'gas', 'house', 'flat', 'maid', 'cook', 'maintenance', 'society', 'insurance', 'tax', 'taxes', 'fees', 'school', 'college', 'tuition', 'gift', 'gifts', 'clothes', 'shoes', 'gadget', 'phone', 'laptop', 'device', 'ticket', 'flight', 'train', 'bus', 'hotel', 'dining', 'restaurant', 'cafe', 'pizza', 'burger', 'snacks', 'starbucks', 'starbuck', 'star', 'bucks', 'subway', 'maggi', 'kirana', 'mart', 'supermarket', 'dmart', 'd-mart', 'milk', 'vegetables', 'fruits', 'veg', 'bread', 'eggs', 'laundry', 'washer', 'dryer', 'salary', 'bonus', 'dividend', 'pocket', 'money', 'hand', 'transfer'];
+const invalidNames = ['for', 'to', 'on', 'via', 'using', 'with', 'by', 'in', 'at', 'of', 'from', 'rs', 'inr', 'rupees', 'me', 'cash', 'card', 'icici', 'hdfc', 'sats', 'gosats', 'prepaid', 'bank', 'interest', 'salary', 'employer', 'refund', 'electricity', 'bill', 'rent', 'groceries', 'food', 'fuel', 'petrol', 'diesel', 'utility', 'utilities', 'shopping', 'medicine', 'starbucks', 'zomato', 'swiggy', 'uber', 'ola', 'movie', 'netflix', 'wifi', 'internet', 'broadband', 'mobile', 'recharge', 'dth', 'power', 'water', 'gas', 'house', 'flat', 'maid', 'cook', 'maintenance', 'society', 'insurance', 'tax', 'taxes', 'fees', 'school', 'college', 'tuition', 'gift', 'gifts', 'clothes', 'shoes', 'gadget', 'phone', 'laptop', 'device', 'ticket', 'flight', 'train', 'bus', 'hotel', 'dining', 'restaurant', 'cafe', 'pizza', 'burger', 'snacks', 'starbucks', 'starbuck', 'star', 'bucks', 'subway', 'maggi', 'kirana', 'mart', 'supermarket', 'dmart', 'd-mart', 'milk', 'vegetables', 'fruits', 'veg', 'bread', 'eggs', 'laundry', 'washer', 'dryer', 'salary', 'bonus', 'dividend', 'pocket', 'money', 'hand', 'transfer'];
 
 /**
  * Main parse function
@@ -97,6 +97,11 @@ function extractType(lowercaseText) {
   // Repaid to / paid back to / returned to means we spent money to clear debt (expense)
   if (lowercaseText.includes('to ') && (lowercaseText.includes('repaid') || lowercaseText.includes('paid back') || lowercaseText.includes('returned') || lowercaseText.includes('repay'))) {
     return 'expense';
+  }
+
+  // "took ... from" or "took loan from" means borrowing (income type)
+  if (lowercaseText.match(/\btook\b/) && lowercaseText.includes('from')) {
+    return 'income';
   }
 
   const incomeWords = [
@@ -321,21 +326,10 @@ function extractDescriptionAndCategory(text, type) {
     }
   }
 
-  // 2. Check for Money Received Back / Return (Incomes)
+  // 2. Check for Borrowing / Money Taken (Incomes) — check FIRST so it takes priority
   if (type === 'income') {
-    const returnFromMatch = text.match(/\b([A-Za-z]+)\s+(?:returned|paid\s+back|repaid|repay|gave\s+back)\b/i) ||
-                            text.match(/\b(?:got|received|recovered|back)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?\s*(?:rs\.?|inr|₹|rupees|bucks)?\s*)?(?:back\s+)?from\s+([A-Za-z]+)\b/i);
-    if (returnFromMatch) {
-      const name = (returnFromMatch[1] || returnFromMatch[2]).trim();
-      if (!invalidNames.includes(name.toLowerCase())) {
-        sourcePerson = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-        category = 'Money Received Back';
-        finalDesc = `Got money back from ${sourcePerson}`;
-      }
-    }
-
-    // Check for Money Taken
-    const borrowFromMatch = text.match(/\b(?:borrowed|borrow|took\s+loan|took)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?\s*(?:rs\.?|inr|₹|rupees|bucks)?\s*)?(?:from\s+)?([A-Za-z]+)\b/i) ||
+    // Check for Money Taken (borrowed/took from someone)
+    const borrowFromMatch = text.match(/\b(?:borrowed|borrow|took\s+loan|took)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?\s*(?:rs\.?|inr|₹|rupees|bucks)?\s*)?(?:from\s+)([A-Za-z]+)\b/i) ||
                             text.match(/\b(?:borrowed|borrow|took\s+loan|took)\s+([A-Za-z]+)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?)\b/i);
     if (borrowFromMatch) {
       const name = borrowFromMatch[1].trim();
@@ -343,6 +337,20 @@ function extractDescriptionAndCategory(text, type) {
         sourcePerson = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         category = 'Money Taken';
         finalDesc = `Took money from ${sourcePerson}`;
+      }
+    }
+
+    // Check for Money Received Back (someone returned/paid back to us) — only if not already matched as Money Taken
+    if (category !== 'Money Taken') {
+      const returnFromMatch = text.match(/\b([A-Za-z]+)\s+(?:returned|paid\s+back|repaid|repay|gave\s+back)\b/i) ||
+                              text.match(/\b(?:got|received|recovered|back)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?\s*(?:rs\.?|inr|₹|rupees|bucks)?\s*)?(?:back\s+)?from\s+([A-Za-z]+)\b/i);
+      if (returnFromMatch) {
+        const name = (returnFromMatch[1] || returnFromMatch[2]).trim();
+        if (!invalidNames.includes(name.toLowerCase())) {
+          sourcePerson = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          category = 'Money Received Back';
+          finalDesc = `Got money back from ${sourcePerson}`;
+        }
       }
     }
   }
