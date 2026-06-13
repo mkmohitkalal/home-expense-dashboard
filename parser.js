@@ -99,15 +99,15 @@ function extractType(lowercaseText) {
     return 'expense';
   }
 
-  // "took ... from" or "took loan from" means borrowing (income type)
-  if (lowercaseText.match(/\btook\b/) && lowercaseText.includes('from')) {
+  // "took ... from", "took loan from", or "taken from" means borrowing (income type)
+  if (lowercaseText.match(/\b(?:took|taken)\b/) && lowercaseText.includes('from')) {
     return 'income';
   }
 
   const incomeWords = [
     'received', 'got', 'credited', 'salary', 'income', 'refund', 'bonus', 
     'earned', 'got from', 'received from', 'added', 'pocket money', 'freelance',
-    'paid back', 'got back', 'repaid', 'recovered', 'borrowed', 'borrow'
+    'paid back', 'got back', 'repaid', 'recovered', 'borrowed', 'borrow', 'taken'
   ];
   
   // 'returned' only means income if it's a repayment context (returned money/amount back from someone)
@@ -328,9 +328,9 @@ function extractDescriptionAndCategory(text, type) {
 
   // 2. Check for Borrowing / Money Taken (Incomes) — check FIRST so it takes priority
   if (type === 'income') {
-    // Check for Money Taken (borrowed/took from someone)
-    const borrowFromMatch = text.match(/\b(?:borrowed|borrow|took\s+loan|took)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?\s*(?:rs\.?|inr|₹|rupees|bucks)?\s*)?(?:from\s+)([A-Za-z]+)\b/i) ||
-                            text.match(/\b(?:borrowed|borrow|took\s+loan|took)\s+([A-Za-z]+)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?)\b/i);
+    // Check for Money Taken (borrowed/took/taken from someone)
+    const borrowFromMatch = text.match(/\b(?:borrowed|borrow|took\s+loan|took|taken)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?\s*(?:rs\.?|inr|₹|rupees|bucks)?\s*)?(?:from\s+)([A-Za-z]+)\b/i) ||
+                            text.match(/\b(?:borrowed|borrow|took\s+loan|took|taken)\s+([A-Za-z]+)\s+(?:(?:rs\.?|inr|₹|rupees)?\s*\d+(?:\.\d{1,2})?)\b/i);
     if (borrowFromMatch) {
       const name = borrowFromMatch[1].trim();
       if (!invalidNames.includes(name.toLowerCase())) {
